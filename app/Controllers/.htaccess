@@ -1,0 +1,12 @@
+# Controllers must never be reachable over HTTP. The previous build kept a
+# live .env with DB credentials + the Telegram bot token in this directory
+# (only reachable because the attacker had repointed the CI4 DotEnv default
+# here); the file has been moved to the project root and this directory is
+# now denied outright.
+<IfModule authz_core_module>
+    Require all denied
+</IfModule>
+<IfModule !authz_core_module>
+    Order allow,deny
+    Deny from all
+</IfModule>

@@ -1,6 +1,24 @@
+# Nothing under app/ is ever a public resource: it holds controllers,
+# models, filters and config. Deny everything, then re-assert the .env rule
+# explicitly so a relax of the blanket deny can never expose a dotenv file.
 <IfModule authz_core_module>
     Require all denied
 </IfModule>
 <IfModule !authz_core_module>
+    Order allow,deny
     Deny from all
+</IfModule>
+
+# Defence in depth: deny .env and .env.* even if the blanket deny above is
+# ever replaced by a directory-listing-friendly rule.
+<IfModule authz_core_module>
+    <FilesMatch "^\.env">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+<IfModule !authz_core_module>
+    <FilesMatch "^\.env">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
 </IfModule>

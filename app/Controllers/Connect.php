@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\KeysModel;
+use Config\Database;
 
 class Connect extends BaseController
 {
@@ -125,7 +126,18 @@ class Connect extends BaseController
 
         $form_rules = [
             'game' => 'required|alpha_dash',
-            'user_key' => 'required|min_length[1]|max_length[36]',
+            // This endpoint is public (excepted from the auth + csrf filters),
+            // so user_key is charset-checked as well: license keys are built
+            // from alnum, spaces and `> - _ . :` (see Keys::generate_action /
+            // Keys::generate_random_action), never from quotes, backslashes,
+            // backticks, semicolons or control characters.
+            'user_key' => [
+                'label'  => 'user key',
+                'rules'  => 'required|min_length[1]|max_length[36]|regex_match[/^[^\'"`\\\\;\x00-\x1F]+$/]',
+                'errors' => [
+                    'regex_match' => 'Invalid characters.',
+                ],
+            ],
             'serial' => 'required|alpha_dash'
         ];
 
@@ -275,8 +287,10 @@ class Connect extends BaseController
 
     protected function getExpiryData($uKey)
     {
-        $sql = "SELECT expired_date FROM keys_code WHERE user_key='$uKey'";
-        $result = mysqli_query($this->db, $sql);
-        return mysqli_fetch_assoc($result);
+        // Bound parameter - never interpolate $uKey into the SQL string.
+        // Same prepared-statement idiom as App\Libraries\LoginThrottle.
+        $db = Database::connect();
+
+        return $db->query('SELECT expired_date FROM keys_code WHERE user_key = ?', [$uKey])->getRowArray();
     }
 }

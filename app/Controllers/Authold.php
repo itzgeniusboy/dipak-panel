@@ -131,8 +131,6 @@ class Auth extends BaseController
                     }
                 }
             }
-            @include('UserMail.php');
-
             return redirect()->to('dashboard')->with('msgSuccess', $expmsg);
         }
 
@@ -273,7 +271,6 @@ class Auth extends BaseController
                 session()->set($data);
 
                 $expmsg = "Account Expires on : " . $userData['expiration_date'];
-                include('UserMail.php');
                 return redirect()->to('dashboard')->with('msgSuccess', $expmsg);
 
             } else {

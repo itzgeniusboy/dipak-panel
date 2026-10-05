@@ -13,6 +13,50 @@ class Keys extends BaseController
     protected $userModel, $model, $user, $userId;
     // NOTE: PHP 8.2 me dynamic props warning aa sakti hai; yadi ho to upar properties declare kar sakte hain.
 
+    /**
+     * Guard for the global key operations.
+     *
+     * Actions that hit every row of keys_code (emptyTable(), a blanket
+     * `expired_date IS NULL` delete, an unscoped devices reset) used to be
+     * reachable by any authenticated reseller. They now require the same
+     * admin levels as the `admin` filter. Returns a redirect Response when
+     * the caller is not allowed, or NULL when the caller may proceed.
+     */
+    private function requireAdminLevel()
+    {
+        $user = $this->user;
+
+        if (!$user || !in_array((int) $user->level, [1, 2], true)) {
+            return redirect()->to('dashboard')->with('msgWarning', "Access Denied!");
+        }
+
+        return null;
+    }
+
+    /**
+     * Guard for actions that act on one identified key: admins (1/2) may act
+     * on any key, everyone else only on keys they registered.
+     * Returns a redirect Response when refused, or NULL when allowed.
+     */
+    private function requireKeyAccess($dKey)
+    {
+        if (!$dKey) {
+            return redirect()->to('keys')->with('msgDanger', "The user key no longer exists.");
+        }
+
+        $user = $this->user;
+
+        if (in_array((int) $user->level, [1, 2], true)) {
+            return null;
+        }
+
+        if ($user->username && $dKey->registrator == $user->username) {
+            return null;
+        }
+
+        return redirect()->to('keys')->with('msgDanger', "Restricted to this user key.");
+    }
+
     public function __construct()
     {
         $this->userModel = new UserModel();
@@ -137,6 +181,9 @@ class Keys extends BaseController
     }
 
     public function alterKeys(){
+        if ($denied = $this->requireAdminLevel()) {
+            return $denied;
+        }
         $model = $this->model;
         $model->where('expired_date <', date('Y-m-d H:i:s'))->delete();
         return redirect()->back()->with('msgSuccess', 'success');
@@ -157,7 +204,9 @@ class Keys extends BaseController
     }
 
     public function deleteKeys(){
-        echo date('Y-m-d H:i:s');
+        if ($denied = $this->requireAdminLevel()) {
+            return $denied;
+        }
         $model = $this->model;
         $model->emptyTable('keys_code');
 
@@ -165,6 +214,10 @@ class Keys extends BaseController
     }
      
     public function delete_all_keys() {
+        if ($denied = $this->requireAdminLevel()) {
+            return $denied;
+        }
+
         $model = $this->model;
 
         $deleted = $model->emptyTable('keys_code');
@@ -172,22 +225,40 @@ class Keys extends BaseController
         if ($deleted) {
             return redirect()->back()->with('msgSuccess', ' Your All keys have been successfully deleted.');
         } else {
-            return redirect()->back()->with('msgError', 'Failed to delete All keys or no keys found.');
+            return redirect()->back()->with('msgDanger', 'Failed to delete All keys or no keys found.');
         }
     }
  
     public function resetAlldevice()
     {
+        if ($denied = $this->requireAdminLevel()) {
+            return $denied;
+        }
+
         $model = $this->model;
-        $model->set('devices', NULL)->update();
-        return redirect()->to('keys');
+        $ok    = $model->set('devices', NULL)->update();
+
+        if ($ok) {
+            return redirect()->to('keys')->with('msgSuccess', 'Device counters reset for all keys.');
+        }
+
+        return redirect()->to('keys')->with('msgDanger', 'Failed to reset device counters.');
     }
   
     public function resetAlkeys()
     {
+        if ($denied = $this->requireAdminLevel()) {
+            return $denied;
+        }
+
         $model = $this->model;
-        $model->set('devices', NULL)->update();
-        return redirect()->to('keys');
+        $ok    = $model->set('devices', NULL)->update();
+
+        if ($ok) {
+            return redirect()->to('keys')->with('msgSuccess', 'Device counters reset for all keys.');
+        }
+
+        return redirect()->to('keys')->with('msgDanger', 'Failed to reset device counters.');
     }
 
     // ---------- UPDATED: bulk reset + backward compatibility ----------
@@ -226,8 +297,22 @@ class Keys extends BaseController
         }
 
         if ($keys){
-            $model->where('user_key', $keys)->delete();
-            return redirect()->back()->with('msgSuccess', 'success');
+            // Delete-by-value is unscoped: verify the key exists and that this
+            // user may act on it before removing it (same ownership idiom as
+            // edit_key / api_key_reset, so a reseller can still delete their
+            // own key from the list view).
+            $dKey = $model->getKeys($keys);
+            if ($denied = $this->requireKeyAccess($dKey)) {
+                return $denied;
+            }
+
+            $deleted = $model->where('user_key', $keys)->delete();
+
+            if ($deleted) {
+                return redirect()->back()->with('msgSuccess', 'success');
+            }
+
+            return redirect()->to('keys')->with('msgDanger', 'Failed to delete key.');
         }
 
         return $this->response->setJSON(['ok'=>false,'message'=>'No action performed']);
@@ -235,11 +320,17 @@ class Keys extends BaseController
 
     //delete wasted keys
     public function startDate(){
-        echo date('Y-m-d H:i:s');
+        if ($denied = $this->requireAdminLevel()) {
+            return $denied;
+        }
         $model = $this->model;
-        $model->where('expired_date ='.null)->delete();
+        $deleted = $model->where('expired_date', null)->delete();
 
-        return redirect()->back()->with('msgSuccess', 'success');
+        if ($deleted) {
+            return redirect()->back()->with('msgSuccess', 'success');
+        }
+
+        return redirect()->back()->with('msgDanger', 'No unused keys found.');
     }
 
     public function api_get_keys()
@@ -249,18 +340,34 @@ class Keys extends BaseController
     }
 
     public function deleteExpired(){
+        if ($denied = $this->requireAdminLevel()) {
+            return $denied;
+        }
         echo date('Y-m-d H:i:s');
         $model = $this->model;
-        $model->where('expired_date <', date('Y-m-d H:i:s'))->delete();
-        return redirect()->back()->with('msgSuccess', 'success');
+        $deleted = $model->where('expired_date <', date('Y-m-d H:i:s'))->delete();
+
+        if ($deleted) {
+            return redirect()->back()->with('msgSuccess', 'success');
+        }
+
+        return redirect()->back()->with('msgDanger', 'No expired keys found.');
     }
 
     //delete wasted keys
     public function deleteUnused(){
+        if ($denied = $this->requireAdminLevel()) {
+            return $denied;
+        }
         echo date('Y-m-d H:i:s');
         $model = $this->model;
-        $model->where('expired_date ='.null)->delete();
-        return redirect()->back()->with('msgSuccess', 'success');
+        $deleted = $model->where('expired_date', null)->delete();
+
+        if ($deleted) {
+            return redirect()->back()->with('msgSuccess', 'success');
+        }
+
+        return redirect()->back()->with('msgDanger', 'No unused keys found.');
     }
 
     public function api_key_reset()

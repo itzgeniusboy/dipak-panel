@@ -129,7 +129,9 @@ $routes->get('twofa', 'User::twofa'); // 2FA page
 
 $routes->group('price', function ($routes) {
     $routes->get('/', 'Price::index');
-    $routes->post('add', 'Price::addDuration');
-    $routes->post('update', 'Price::updatePrice');
-    $routes->post('delete/(:num)', 'Price::delete/$1');
+    // Mutating routes require admin level 1/2 (same `admin` filter as the
+    // /admin group below) - a reseller must not be able to rewrite pricing.
+    $routes->post('add', 'Price::addDuration', ['filter' => 'admin']);
+    $routes->post('update', 'Price::updatePrice', ['filter' => 'admin']);
+    $routes->post('delete/(:num)', 'Price::delete/$1', ['filter' => 'admin']);
 });

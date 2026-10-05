@@ -2,6 +2,52 @@
 Options All -Indexes
 
 # ----------------------------------------------------------------------
+# Block direct web access to environment / secret files
+# ----------------------------------------------------------------------
+
+# Deny any .env file (and .env.* variants) except the committed template.
+# Placed before the rewrite rules because the front-controller fallback below
+# only rewrites requests for files that do NOT exist on disk; .env does exist.
+<IfModule mod_authz_core.c>
+    <FilesMatch "^\.env(?!\.example$)">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <FilesMatch "^\.env(?!\.example$)">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+# Keep the documented template reachable (last matching section wins).
+<IfModule mod_authz_core.c>
+    <Files ".env.example">
+        Require all granted
+    </Files>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <Files ".env.example">
+        Order allow,deny
+        Allow from all
+    </Files>
+</IfModule>
+
+# Deny other secret/backup artefacts that are readable from the doc root
+# (CI4 logs can contain query data; .sql/.bak copies leak the schema).
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(sql|log|bak|old|orig|ini)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <FilesMatch "\.(sql|log|bak|old|orig|ini)$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+# ----------------------------------------------------------------------
 # Rewrite engine
 # ----------------------------------------------------------------------
 
