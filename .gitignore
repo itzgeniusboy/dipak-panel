@@ -1,0 +1,26 @@
+# Ignore Composer-managed dependencies
+/vendor/
+
+# Ignore CodeIgniter writable directories
+/writable/
+
+# Ignore environment files (may contain secrets) at any depth
+.env
+**/.env
+!.env.example
+
+# Ignore user uploads
+/uploads/
+
+# Ignore log files
+*.log
+
+# Ignore preview/build scratch directory
+/preview/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

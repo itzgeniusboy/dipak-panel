@@ -1,0 +1,329 @@
+<?= $this->extend('Layout/Starter') ?>
+
+<?= $this->section('content') ?>
+<style>
+/* ====== GLASSMORPHISM THEME – Compact, Wider Sides (Desktop 98%, Mobile 99%) ====== */
+
+/* fonts (optional) */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+:root{
+  --glass-bg: rgba(255,255,255,.14);
+  --glass-border: rgba(255,255,255,.30);
+  --primary:#4facfe;
+  --secondary:#00f2fe;
+  --pink:#ff66e9;
+  --purple:#7d5cff;
+  --text:#ffffff;
+  --muted:rgba(255,255,255,.70);
+  --navbar-h:64px; /* top navbar height */
+}
+
+/* base */
+body{
+  font-family:'Poppins',sans-serif;
+  color:var(--text);
+  background: linear-gradient(135deg,#667eea,#764ba2) fixed;
+  min-height:100dvh;
+}
+
+/* only status message (agar kahin use ho) */
+.status-message{ margin-bottom:16px; color:var(--text); font-size:14px; }
+
+/* page container – side gap kam */
+.glass-page,
+.cyber-dashboard{
+  width:98%;
+  max-width:1200px;
+  margin: calc(var(--navbar-h) + 10px) auto 20px;
+  padding:0;
+}
+
+/* grid layout */
+.glass-grid{ display:grid; grid-template-columns:1fr; gap:14px; }
+@media (min-width:992px){ .glass-grid{ grid-template-columns:1.1fr .9fr; } }
+
+/* panels/cards */
+.glass-panel,
+.cyber-card{
+  background: var(--glass-bg);
+  border:1px solid var(--glass-border);
+  border-radius:12px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+  overflow:hidden;
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  padding:18px;
+  margin-bottom:20px;
+}
+.glass-panel:hover,
+.cyber-card:hover{
+  transform: translateY(-2px);
+  box-shadow:0 12px 34px rgba(0,0,0,.35);
+  border-color: rgba(255,255,255,.45);
+}
+
+/* panel header */
+.glass-head,
+.cyber-header{
+  display:flex; align-items:center; gap:10px;
+  padding:14px 16px;
+  background: linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+  border-bottom:1px solid var(--glass-border);
+}
+.glass-head h3,
+.cyber-header h3{ margin:0; font-size:17px; font-weight:700; letter-spacing:.4px; }
+
+/* body */
+.glass-body,
+.cyber-body{ padding:14px; }
+
+/* form fields */
+.g-group,
+.cyber-form-group{ margin-bottom:12px; position:relative; }
+
+.g-label,
+.cyber-label{
+  display:block; margin-bottom:6px; color:#eaeaff; font-weight:600; font-size:12.5px;
+}
+
+.g-input,
+.cyber-input{
+  width:100%;
+  border:none; border-radius:8px;
+  background: rgba(255,255,255,.10);
+  color:#fff;
+  padding:11px 14px; padding-right:40px;
+  font-size:14px; line-height:1.25;
+  backdrop-filter: blur(10px);
+  transition:.25s;
+}
+.g-input::placeholder,
+.cyber-input::placeholder{ color:#e9e9e9; opacity:.9; }
+.g-input:focus,
+.cyber-input:focus{
+  outline:none; background:rgba(255,255,255,.18);
+  box-shadow:0 0 0 3px rgba(255,255,255,.25);
+}
+
+/* eye icon for password */
+.eye,
+.password-toggle{
+  position:absolute; right:12px; top:36px; cursor:pointer;
+  color:var(--secondary);
+}
+
+/* error text */
+.g-error,
+.cyber-error{
+  color:#ff6b6b; font-size:12px; margin-top:6px;
+  display:flex; align-items:center; gap:6px;
+}
+
+/* buttons */
+.g-btn,
+.cyber-btn{
+  width:100%;
+  border:none; border-radius:8px;
+  padding:12px;
+  font-weight:600; font-size:14px; letter-spacing:.5px;
+  color:#fff; cursor:pointer;
+  background: linear-gradient(45deg, var(--primary), var(--secondary));
+  transition: all .3s ease;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.g-btn.pink{ background: linear-gradient(45deg, var(--pink), var(--purple)); }
+.g-btn:hover,
+.cyber-btn:hover{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.35); }
+
+/* toast/status style */
+.alert, .toast, .badge{
+  border-radius:10px; backdrop-filter: blur(10px);
+}
+
+/* tiny phones: almost full width */
+@media (max-width:768px){
+  .glass-page, .cyber-dashboard{ width:99%; }
+  .glass-head h3, .cyber-header h3{ font-size:16px; }
+}
+</style>
+
+<?= $this->include('Layout/msgStatus') ?>
+
+<?php
+  // Current username resolve (controller -> $currentUsername; else $user->username; else session)
+  $currentUsername = $currentUsername ?? ($user->username ?? (session('username') ?? ''));
+?>
+
+<!-- new two-panel layout -->
+<div class="glass-grid">
+  <!-- LEFT: Profile Information -->
+  <div class="glass-panel">
+    <div class="glass-head">
+      <i class="fas fa-user-astronaut"></i>
+      <h3>Profile Information</h3>
+    </div>
+    <div class="glass-body">
+      <?= form_open() ?>
+      <input type="hidden" name="fullname_form" value="1">
+
+      <div class="g-group">
+        <label for="fullname" class="g-label">FULL NAME</label>
+        <input type="text" name="fullname" id="fullname" class="g-input"
+              placeholder="Enter your full name"
+              value="<?= old('fullname') ?: ($user->fullname ?: '') ?>">
+        <?php if (isset($validation) && $validation->hasError('fullname')) : ?>
+          <div class="g-error"><i class="fas fa-exclamation-circle"></i><?= $validation->getError('fullname') ?></div>
+        <?php endif; ?>
+      </div>
+
+      <button type="submit" class="g-btn pink">
+        <i class="fas fa-save"></i> Save Profile
+      </button>
+      <?= form_close() ?>
+    </div>
+  </div>
+
+  <!-- RIGHT: Username (NEW) + Password Management -->
+  <!-- Username Card (ABOVE password card) -->
+  <div class="glass-panel">
+    <div class="glass-head">
+      <i class="fas fa-user-edit"></i>
+      <h3>Username</h3>
+    </div>
+    <div class="glass-body">
+      <?= form_open('settings/update-username') ?>
+        <?= function_exists('csrf_field') ? csrf_field() : '' ?>
+
+        <div class="g-group">
+          <label class="g-label">CURRENT USERNAME</label>
+          <input type="text" class="g-input" value="<?= esc($currentUsername) ?>" disabled>
+        </div>
+
+        <div class="g-group">
+          <label for="new_username" class="g-label">ENTER NEW USERNAME</label>
+          <input name="new_username" id="new_username" type="text" class="g-input" placeholder="e.g. ENGINE" required>
+          <?php if (isset($validation) && $validation->hasError('new_username')): ?>
+            <div class="g-error"><i class="fas fa-exclamation-circle"></i><?= $validation->getError('new_username') ?></div>
+          <?php endif; ?>
+          <small style="display:block;margin-top:6px;color:#eaeaff;opacity:.8;">
+            Allowed: 3–32 chars (letters, numbers, dot, underscore, hyphen)
+          </small>
+        </div>
+
+        <button type="submit" class="g-btn" id="btn-username-update">
+          <i class="fas fa-sync-alt"></i> Update Username
+        </button>
+      <?= form_close() ?>
+    </div>
+  </div>
+
+  <!-- Password Management (EXISTING) -->
+  <div class="glass-panel">
+    <div class="glass-head">
+      <i class="fas fa-shield-alt"></i>
+      <h3>Password Management</h3>
+    </div>
+    <div class="glass-body">
+      <?= form_open() ?>
+      <input type="hidden" name="password_form" value="1">
+
+      <div class="g-group">
+        <label for="current" class="g-label">CURRENT PASSWORD</label>
+        <input type="password" name="current" id="current" class="g-input" placeholder="Enter current password">
+        <i class="fas fa-eye eye toggle-password" data-target="#current"></i>
+        <?php if (isset($validation) && $validation->hasError('current')) : ?>
+          <div class="g-error"><i class="fas fa-exclamation-circle"></i><?= $validation->getError('current') ?></div>
+        <?php endif; ?>
+      </div>
+
+      <div class="g-group">
+        <label for="password" class="g-label">NEW PASSWORD</label>
+        <input type="password" name="password" id="password" class="g-input" placeholder="Enter new password">
+        <i class="fas fa-eye eye toggle-password" data-target="#password"></i>
+        <?php if (isset($validation) && $validation->hasError('password')) : ?>
+          <div class="g-error"><i class="fas fa-exclamation-circle"></i><?= $validation->getError('password') ?></div>
+        <?php endif; ?>
+      </div>
+
+      <div class="g-group">
+        <label for="password2" class="g-label">CONFIRM PASSWORD</label>
+        <input type="password" name="password2" id="password2" class="g-input" placeholder="Confirm new password">
+        <i class="fas fa-eye eye toggle-password" data-target="#password2"></i>
+        <?php if (isset($validation) && $validation->hasError('password2')) : ?>
+          <div class="g-error"><i class="fas fa-exclamation-circle"></i><?= $validation->getError('password2') ?></div>
+        <?php endif; ?>
+      </div>
+
+      <button type="submit" class="g-btn">
+        <i class="fas fa-lock"></i> Update Security
+      </button>
+      <?= form_close() ?>
+    </div>
+  </div>
+</div>
+<?= $this->endSection() ?>
+
+<?= $this->section('js') ?>
+<script>
+  // Toggle password eye icons (existing)
+  document.addEventListener('click', function(e){
+    if(e.target.classList.contains('toggle-password')){
+      const input = document.querySelector(e.target.dataset.target);
+      if(!input) return;
+      const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+      input.setAttribute('type', type);
+      e.target.classList.toggle('fa-eye');
+      e.target.classList.toggle('fa-eye-slash');
+    }
+  });
+
+  // Username submit -> disable + spinner
+  (function(){
+    const btnU = document.getElementById('btn-username-update');
+    if (btnU && btnU.closest('form')) {
+      btnU.closest('form').addEventListener('submit', function(){
+        btnU.disabled = true;
+        btnU.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+      });
+    }
+  })();
+
+  // Glass Toast (flashdata success/error/info)
+  document.addEventListener('DOMContentLoaded', function(){
+    const successMsg = <?= json_encode(session('success') ?? '') ?>;
+    const errorMsg   = <?= json_encode(session('error') ?? '') ?>;
+    const infoMsg    = <?= json_encode(session('info') ?? '') ?>;
+
+    function showToast(msg, type='success') {
+      if(!msg) return;
+      const el = document.createElement('div');
+      el.style.position = 'fixed';
+      el.style.right = '16px';
+      el.style.bottom = '16px';
+      el.style.zIndex = '9999';
+      el.style.padding = '12px 14px';
+      el.style.borderRadius = '10px';
+      el.style.backdropFilter = 'blur(10px)';
+      el.style.webkitBackdropFilter = 'blur(10px)';
+      el.style.boxShadow = '0 8px 24px rgba(0,0,0,.25)';
+      el.style.color = '#fff';
+      el.style.maxWidth = '80vw';
+      el.style.fontWeight = '600';
+      el.style.letterSpacing = '.2px';
+      if (type === 'success') el.style.background = 'linear-gradient(45deg, #00c853, #64dd17)';
+      if (type === 'error')   el.style.background = 'linear-gradient(45deg, #ff5252, #ff1744)';
+      if (type === 'info')    el.style.background = 'linear-gradient(45deg, #4facfe, #00f2fe)';
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(()=>{ el.style.transition='opacity .4s'; el.style.opacity='0'; }, 2000);
+      setTimeout(()=>{ el.remove(); }, 2600);
+    }
+
+    if (successMsg) showToast(successMsg, 'success');   // e.g., "Username updated successfully!"
+    if (errorMsg)   showToast(errorMsg,   'error');
+    if (infoMsg)    showToast(infoMsg,    'info');
+  });
+</script>
+<?= $this->endSection() ?>

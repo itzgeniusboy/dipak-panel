@@ -1,0 +1,113 @@
+# Design contract — DIPAK GAMING panel
+
+Every view is rebuilt against this. Read this file before writing any view.
+
+## Files that already exist (use them, do not recreate)
+
+- `assets/css/tokens.css` — colours, type, spacing, curves
+- `assets/css/app.css` — every component class
+- `assets/js/motion.js` — `window.MT`, the runtime
+- `assets/js/app.js` — `window.App`, toasts and dialogs
+- `app/Views/Layout/Auth.php` — auth shell, has `$this->renderSection('content')`
+- `app/Views/Auth/login.php` — **reference implementation, copy its idioms**
+
+## Look
+
+`dusk`. `data-look="dusk"` on `<html>`. Tokens:
+
+| token | value | use |
+|---|---|---|
+| `--ground` | `#15131c` | the page, ~70% of the frame |
+| `--deep` | `#08070b` | inputs, table head, insets |
+| `--card` | `#1f1c29` | surfaces |
+| `--card-raised` | `#262232` | buttons, toasts |
+| `--line` | `#34313f` | hairlines and borders |
+| `--mute` | `#807c8c` | labels, secondary text (4.6:1 on ground) |
+| `--ink` | `#efece6` | body and headings (13.2:1) |
+| `--accent` | `#7c6cff` | the one colour that means something |
+| `--accent2` | `#f4c64f` | its partner, used rarely |
+| `--good` `--warn` `--bad` | | status only |
+
+Type: `--font-display` (Geist) headings, `--font-text` (Inter) body, `--font-mono` (Geist Mono) keys, numbers, labels.
+
+## Markup rules
+
+**Shelled pages** (everything inside the panel) extend `Layout/Starter.php`:
+
+```php
+<?= $this->extend('Layout/Starter') ?>
+<?= $this->section('title', 'Keys') ?>
+<?= $this->section('content') ?>
+  <div class="page-head" data-mt>
+    <div>
+      <div class="eyebrow">Panel</div>
+      <h1>Keys</h1>
+      <p class="page-head__sub">128 keys · 3 expire this week</p>
+    </div>
+    <div class="spacer"></div>
+    <div class="page-head__actions">
+      <a class="btn" href="<?= site_url('keys') ?>">Back</a>
+      <a class="btn btn--primary" href="<?= site_url('keys/generate') ?>">New key</a>
+    </div>
+  </div>
+  <div class="stats" data-mt> … </div>
+  <div class="table-wrap" data-mt> … </div>
+<?= $this->endSection() ?>
+```
+
+**Auth pages** (login, register, forgot, reset, otp, device-reset) extend `Layout/Auth` with only a `content` section — see `Auth/login.php`.
+
+## Motion — `MT`, never a hand-rolled ease
+
+| attribute | effect |
+|---|---|
+| `data-mt` | entrance: lift + scale on `settle`, staggered down the page |
+| `data-press` | press: dip and ring-out (buttons, tiles) |
+| `data-count="128"` | number counts up on `drift` |
+| `data-carry="#target"` | the pressed element morphs into the target, then navigates |
+| `data-progress="72"` | meter fills on `snap` |
+| `data-no-enter` | opt a row out of a stagger |
+
+Curves: `snap` t80 .23 (lands), `quick` .33 (leaves), `settle` .42 (arrives), `glide` .71 (travel), `drift` .67 (long travel). Springs are `ζ`/`ω`. Never write `ease-in-out` in a view.
+
+Rules that make it feel made rather than animated:
+
+- **Never hide and re-show.** A `display:none` swap is a slide change, however good the timing. Carry something instead.
+- **Vary the timing.** An even stagger is a metronome. Group elements and let the gap tighten as it settles.
+- **Rests are allowed.** A block that never moves makes the ones that do land.
+- **Nothing animates on hover except a tint, a border or a 2px lift.** A table row that slides on hover is a video.
+- Small elements, big ground. Do not fill the page edge to edge.
+
+## Components available (see `app.css`)
+
+`.page-head` `.eyebrow` `.spacer` `.stats` `.stat` `.stat__label` `.stat__value` `.stat__foot`
+`.card` `.card--flush` `.card--glow` `.card--lift` `.card__head`
+`.table-wrap` `table.tbl` `.tbl__key` `.tbl__num` `.empty`
+`.btn` `.btn--primary` `.btn--ghost` `.btn--danger` `.btn--lg` `.btn--sm` `.btn--block`
+`.field` `.label` `.input` `.input--mono` `.select` `.textarea` `.hint` `.error-text` `.field-row`
+`.switch` `.tabs` `.tab` `.chip` `.chip--good` `.chip--warn` `.chip--bad` `.chip--accent` `.dot` `.dot--live`
+`.alert` `.alert--good` `.alert--bad` `.alert--warn` `.meter` `.meter__fill`
+`.row` `.row--wrap` `.row--end` `.row--between` `.stack` `.gap-2` `.gap-3` `.mt-2..5` `.mb-0..5` `.tr` `.tc` `.nowrap`
+`.dialog` (native `<dialog class="dlg">` via `App.dialog`)
+
+## Forms
+
+```php
+<?= form_open() ?> … <?= form_close() ?>
+```
+Always. Keep the original `name=` attributes exactly as they were — the controllers read them. Field-level validation errors come from `$validation` the controller already passes.
+
+## Never
+
+- No Bootstrap classes (`row`, `col-*`, `btn btn-primary` **without** the `--`, `form-control`, `table` without `tbl`, `card` is fine but needs no Bootstrap)
+- No `mt-1` `mb-2` `px-3` — use the design system's `--s` scale
+- No jQuery, no SweetAlert2 calls. Use `App.toast()`, `App.dialog()`, `App.confirm()` and `data-confirm="text"`
+- No inline `<style>` in a view. If a rule is needed twice, add it to `app.css`
+- No external CDN. Fonts come from `Layout/*.php`
+- No hardcoded credentials, no `$_SERVER` echoes
+
+## Mobile
+
+- Sidebar becomes a drawer (`data-drawer`, `data-drawer-open`, `.scrim`) — `Starter.php` already wires it
+- `.shell__main` has its own padding; never add page padding
+- Tables: wrap in `.scroll-x` if it has more than 5 columns
