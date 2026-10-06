@@ -888,7 +888,11 @@ dialog.dlg[open]::backdrop { animation: fade-in var(--d-enter) var(--ease-settle
 }
 
 @media (max-width: 560px) {
-  .shell__top { gap: var(--s2); padding: 0 var(--s3); }
+  .shell__top {
+    gap: var(--s2);
+    padding-left: max(var(--s3), env(safe-area-inset-left));
+    padding-right: max(var(--s3), env(safe-area-inset-right));
+  }
   .brand__sub { display: none; }
   .shell__top .chip { display: none; }
   .stats { grid-template-columns: 1fr 1fr; }
