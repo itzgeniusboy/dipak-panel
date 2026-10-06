@@ -88,3 +88,12 @@ function getPrice($price, $duration, $device_max)
     $result = ($priceReal * $device_max);
     return ($result <= 0) ? false : $result;
 }
+
+/**
+ * The owner (level 1) never pays: the balance is unlimited and key generation
+ * must not deduct from it. Levels 2+ (admins, resellers, users) still pay.
+ */
+function isUnlimitedBalance($user)
+{
+    return $user && (int) ($user->level ?? 0) === 1;
+}

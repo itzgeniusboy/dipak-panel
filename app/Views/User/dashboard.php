@@ -150,8 +150,13 @@ foreach (['msgSuccess' => 'good', 'msgDanger' => 'bad', 'msgWarning' => 'warn', 
   <div class="stats" data-mt>
     <div class="stat" data-press>
       <span class="stat__label">Balance</span>
-      <span class="stat__value">₹<span data-count="<?= esc((string) (int) $user->saldo, 'html') ?>">0</span></span>
-      <span class="stat__foot">Credited to <?= esc(getName($user), 'html') ?></span>
+      <?php if (isUnlimitedBalance($user)): ?>
+        <span class="stat__value">∞</span>
+        <span class="stat__foot">Owner account — unlimited</span>
+      <?php else: ?>
+        <span class="stat__value">₹<span data-count="<?= esc((string) (int) $user->saldo, 'html') ?>">0</span></span>
+        <span class="stat__foot">Credited to <?= esc(getName($user), 'html') ?></span>
+      <?php endif; ?>
     </div>
 
     <div class="stat" data-press>

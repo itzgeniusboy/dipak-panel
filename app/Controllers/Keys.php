@@ -679,7 +679,9 @@ class Keys extends BaseController
         ];
 
         $validation  = Services::validation();
-        $reduceCheck = ($user->saldo - $getPrice);
+        // The owner (level 1) is unlimited: no charge, so never "insufficient".
+        $charge      = isUnlimitedBalance($user) ? 0 : $getPrice;
+        $reduceCheck = ($user->saldo - $charge);
         if ($reduceCheck < 0) {
             $validation->setError('duration', 'Insufficient balance');
             return redirect()->back()->withInput()->with('msgWarning', 'Please top up to your beloved admin.');
@@ -808,7 +810,9 @@ class Keys extends BaseController
         $validation = Services::validation();
 
         $getPrice    = getPrice($this->price, $drtn, $maxd);
-        $reduceCheck = ($user->saldo - $getPrice);
+        // The owner (level 1) is unlimited: no charge, so never "insufficient".
+        $charge      = isUnlimitedBalance($user) ? 0 : $getPrice;
+        $reduceCheck = ($user->saldo - $charge);
         if ($reduceCheck < 0) {
             $validation->setError('duration', 'Insufficient balance');
             return redirect()->back()->withInput()->with('msgWarning', 'Please top up to your beloved admin.');

@@ -299,7 +299,8 @@ p { margin: 0 0 var(--s3); color: var(--mute); }
 .table-wrap {
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--card);
 }
 
@@ -861,10 +862,27 @@ dialog.dlg[open]::backdrop { animation: fade-in var(--d-enter) var(--ease-settle
 }
 
 @media (max-width: 560px) {
+  .shell__top { gap: var(--s2); padding: 0 var(--s3); }
+  .brand__sub { display: none; }
+  .shell__top .chip { display: none; }
   .stats { grid-template-columns: 1fr 1fr; }
   .page-head { align-items: flex-start; }
   .page-head__actions { width: 100%; }
   .btn { padding: 9px var(--s3); }
+
+  /* wide tables scroll instead of squashing into unreadable columns */
+  table.tbl { min-width: 520px; }
+
+  .card { padding: var(--s4); }
+  .card--flush { padding: 0; }
+  .stack { gap: var(--s3); }
+  pre { max-width: 100%; overflow-x: auto; }
+}
+
+@media (max-width: 380px) {
+  .stats { grid-template-columns: 1fr; }
+  .shell__main { padding: var(--s3) var(--s3) var(--s7); }
+  .card { padding: var(--s3); }
 }
 
 .scrim {
