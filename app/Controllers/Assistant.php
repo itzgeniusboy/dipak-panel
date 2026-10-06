@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Libraries\Assistant\Actions;
 use App\Libraries\Assistant\CommandRouter;
+use App\Libraries\Assistant\Gemini;
 use App\Models\AssistantKeysModel;
 use App\Models\UserModel;
 
@@ -40,6 +41,7 @@ class Assistant extends BaseController
             'newKeyLabel' => session()->getFlashdata('newKeyLabel'),
             'actions' => Actions::list(),
             'pages' => Actions::PAGES,
+            'gemini' => Gemini::enabled(),
         ]);
     }
 
@@ -84,18 +86,17 @@ class Assistant extends BaseController
             return $this->json(['ok' => false, 'speak' => 'I did not hear anything.', 'plan' => []]);
         }
 
-        $route = CommandRouter::route($text);
+        $route = Gemini::interpret($text, $this->user, $this->userId) ?? CommandRouter::route($text);
 
         if ($route['action'] === '_reply') {
             return $this->json([
                 'ok'    => true,
+                'via'   => $route['via'] ?? 'rules',
                 'speak' => $route['reply'],
                 'plan'  => [['type' => 'say', 'text' => $route['reply']]],
                 'toast' => ['kind' => 'info', 'msg' => $route['reply']],
             ]);
         }
-
-        $result = Actions::run($route['action'], $route['params'], $this->user, $this->userId);
 
         $result = Actions::run($route['action'], $route['params'], $this->user, $this->userId);
 
@@ -126,6 +127,7 @@ class Assistant extends BaseController
 
         return $this->json([
             'ok'      => (bool) $result['ok'],
+            'via'     => $route['via'] ?? 'rules',
             'action'  => $route['action'],
             'speak'   => $result['message'],
             'data'    => $result['data'],

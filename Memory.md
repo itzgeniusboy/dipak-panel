@@ -141,3 +141,13 @@
 **Open:** on-screen travel/voice can only be checked via jsdom + curl (no browser/Playwright → no visual check); a requested 48h/2-day key correctly reports "No price is configured for 48h" because no such plan exists.
 
 **Next:** commit the assistant work in focused commits; consider adding a 48h plan if the owner wants 2-day keys; still open from before — `Auth.php:189` SQL interpolation, reset token in URL, DB/bot-token rotation.
+
+---
+
+## 2026-10-06 — optional Gemini layer for Circuit
+
+`app/Libraries/Assistant/Gemini.php` — a natural-language front door, **off unless configured**. `interpret()` sends the sentence to `generativelanguage.googleapis.com` (`gemini-2.0-flash` default) with a system prompt that lists the whole action registry, the pages, and the available durations, and asks for one JSON object. `parse()` accepts only a declared action, drops any param not in the registry's whitelist, int-casts `duration`/`max_devices`/`id`, and re-refuses the password/username reservation; anything unknown or malformed returns `null`. `Assistant::command()` does `Gemini::interpret(...) ?? CommandRouter::route(...)`, so **the LLM is a hint, the rules are the floor** — no key, timeout, HTTP error or bad JSON all fall back cleanly. Key/`model` come from `.env` (`gemini.apiKey`, `gemini.model`), never the front-end; `.env.example` documents them, the running `.env` and `tools/.env.hostbak` got blank slots so it survives a host stop/restore. Responses now carry `via` (gemini|rules) and the Assistant page shows an **AI on / Rules** chip.
+
+**Verified:** `php -l` clean; `parse()` unit table (int casting, fenced JSON tolerance, unknown action → null, `account.password` → null, extra `password` param dropped); live `/assistant/command` with no key and with a **fake** key — both fall back, correct action, no 500; Assistant page chip renders "Rules". Also fixed a duplicate `Actions::run()` call in `Assistant::command()`.
+
+**To enable:** put your Gemini key on the `gemini.apiKey` line of `.env` (blank = built-in rules).

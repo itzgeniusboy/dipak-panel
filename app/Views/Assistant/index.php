@@ -15,6 +15,11 @@
     </div>
     <div class="spacer"></div>
     <div class="page-head__actions">
+      <?php if (! empty($gemini)): ?>
+        <span class="chip chip--accent" title="Natural language is handled by Gemini">AI on</span>
+      <?php else: ?>
+        <span class="chip" title="Using the built-in rule-based router; add gemini.apiKey to .env to enable AI">Rules</span>
+      <?php endif; ?>
       <a class="btn btn--ghost" href="<?= site_url('keys') ?>">Keys</a>
       <a class="btn" href="<?= site_url('dashboard') ?>" data-press>Back to panel</a>
     </div>
