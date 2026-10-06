@@ -37,6 +37,17 @@ if (getcwd() . DIRECTORY_SEPARATOR !== FCPATH) {
     chdir(FCPATH);
 }
 
+// Under the PHP built-in server this file also acts as the router script, so
+// real files (assets, uploads) have to be handed back to the server here.
+// Apache/Nginx already do that via the `!-f` / `!-d` rewrite conditions.
+if (PHP_SAPI === 'cli-server') {
+    $reqPath = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+    if ($reqPath !== '' && ! str_contains($reqPath, '..')
+        && is_file(FCPATH . ltrim($reqPath, DIRECTORY_SEPARATOR))) {
+        return false;
+    }
+}
+
 /*
  *---------------------------------------------------------------
  * BOOTSTRAP THE APPLICATION
