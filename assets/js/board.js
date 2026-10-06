@@ -208,7 +208,11 @@
   };
 
   function boot() {
-    document.querySelectorAll('[data-board]').forEach(function (root) { new Board(root); });
+    document.querySelectorAll('[data-board]').forEach(function (root) {
+      if (root.getAttribute('data-board-bound')) return;
+      root.setAttribute('data-board-bound', '1');
+      new Board(root);
+    });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

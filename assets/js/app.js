@@ -160,6 +160,12 @@
     dialog: dialog,
     confirm: function (text, title) {
       return dialog({ title: title || 'Are you sure?', text: text, ok: 'Yes', danger: true });
+    },
+    /* Soft navigation swaps #main itself; it calls these to re-wire the new
+     * content without a reload. */
+    bind: {
+      forms: bindForms,
+      flash: readFlash
     }
   };
 

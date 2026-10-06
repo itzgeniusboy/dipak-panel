@@ -233,9 +233,16 @@
         p = say(step.text, step.hold);
       } else if (step.type === 'goto') {
         p = lead.then(function () { return pressSelector(step.target || step.selector); }).then(function () {
+          if (!step.url) { return wait(500); }
+          if (window.SoftNav && window.SoftNav.active) {
+            // No reload: only #main swaps, the mic keeps running, and the plan
+            // continues right here in the same JavaScript context.
+            try { sessionStorage.removeItem(RESUME); } catch (e) {}
+            return window.SoftNav.go(step.url, true).then(function () { return wait(300); });
+          }
           var rest = plan.slice(i);
           try { sessionStorage.setItem(RESUME, JSON.stringify(rest)); } catch (e) {}
-          if (step.url) window.location.href = step.url;
+          window.location.href = step.url;
           return wait(500);
         });
       } else if (step.type === 'fill' || step.type === 'select' || step.type === 'check') {

@@ -349,6 +349,7 @@ foreach (['msgSuccess' => 'good', 'msgDanger' => 'bad', 'msgWarning' => 'warn', 
     if (isNaN(end)) return;
     var pad = function (n) { return n < 10 ? '0' + n : String(n); };
     var tick = function () {
+      if (!document.contains(el)) { return; }
       var diff = end - Date.now();
       if (diff <= 0) { el.textContent = 'Expired'; return; }
       var d = Math.floor(diff / 86400000);

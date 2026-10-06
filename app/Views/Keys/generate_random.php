@@ -217,7 +217,7 @@ if ($fFees !== null && $fFees !== '' && is_numeric($fFees)) {
     }
 
     /* Copy from inside any dialog the panel opens. */
-    document.addEventListener('click', function (ev) {
+    if (!window.__copyInBound) { window.__copyInBound = true; document.addEventListener('click', function (ev) {
       var btn = ev.target.closest('[data-copy-in]');
       if (!btn) { return; }
       var src = document.getElementById(btn.getAttribute('data-copy-in'));
@@ -233,7 +233,7 @@ if ($fFees !== null && $fFees !== '' && is_numeric($fFees)) {
       src.select();
       try { document.execCommand('copy'); } catch (e) {}
       App.toast('Key copied to the clipboard.', 'good', 'Copied');
-    });
+    }); }
   })();
 </script>
 <?= $this->endSection() ?>

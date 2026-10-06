@@ -101,10 +101,12 @@
 <?= $this->section('script') ?>
 <script>
   (function () {
+    if (window.__copyRefBound) { return; }
+    window.__copyRefBound = true;
     document.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-copy]');
+      var b = e.target.closest('[data-copy-el]');
       if (!b) return;
-      var el = document.querySelector(b.getAttribute('data-copy'));
+      var el = document.querySelector(b.getAttribute('data-copy-el'));
       if (!el) return;
       navigator.clipboard.writeText(el.textContent.trim()).then(function () {
         window.App && App.toast('Key copied to clipboard.', 'good');

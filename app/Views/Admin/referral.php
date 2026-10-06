@@ -196,8 +196,10 @@ foreach ($rows as $c) {
 <?= $this->section('script') ?>
 <script>
   (function () {
+    if (window.__copyCodeBound) { return; }
+    window.__copyCodeBound = true;
     document.addEventListener('click', function (e) {
-      var btn = e.target.closest('[data-copy]');
+      var btn = e.target.closest('button[data-copy]');
       if (!btn) return;
       var value = btn.getAttribute('data-copy') || '';
       var done = function () { App.toast('Code ' + value + ' copied', 'good', 'Copied'); };

@@ -172,3 +172,12 @@ Circuit no longer runs actions behind the UI — it walks the pages and presses 
 - Commit `1ae2b33`. jsdom harness (`/usr/tmp/opencode/jt/cjrun.js`) extended: fill select/number, click-by-text, read, resume-cleared all pass, no JS errors.
 
 **Next:** live end-to-end test of a full UI plan once the login rate-limit resets (harness stubs navigation, so real redirects are reasoned, not observed); optionally extend PanelMap to ExtendDuration / approvals / manage-users.
+
+## 2026-10-06 — Soft navigation (panel never reloads)
+
+The panel now swaps **only `<main id="main">`** instead of doing full page loads, so the page keeps its JS context — SpeechRecognition (the mic) stays alive across navigation and Circuit's plans run in one uninterrupted flow.
+
+- **New `assets/js/soft-nav.js`** (`window.SoftNav`): intercepts internal links + form submits, `fetch`es the target, parses with `DOMParser`, swaps `#main`, updates `<title>` + `csrf-token`, sets `aria-current="page"` on `[data-nav]`, closes the drawer, then `MT.init()` → `App.bind.forms()`/`flash()` → re-injects the page's own inline scripts (core bundle scripts are skipped and never re-run). `popstate` replays back/forward. Falls back to a normal `location.href` for external links, downloads, logout, non-HTML responses, fetch errors and pages without `#main` (e.g. login).
+- `Starter.php` loads `soft-nav.js` right after `app.js`; `app.js` exposes `App.bind = { forms: bindForms, flash: readFlash }`; `circuit-agent.js` `goto` now calls `SoftNav.go()` and awaits it (no reload, no resume snapshot needed).
+- Idempotence: document-level copy listeners are bind-once guarded and de-conflicted (`data-copy-in` in generate/generate_random, `button[data-copy]` in referral, `data-copy-el` in assistant); dashboard expiry ticker stops when its element leaves the DOM (`document.contains`); `board.js` marks roots `data-board-bound`. Post forms are fetched+swapped; success does **not** re-submit (no double side-effect).
+- Verified with jsdom (`/usr/tmp/opencode/jt/snrun.js`, 19 checks: swap, title, nav, csrf, script re-run, core-not-rerun, popstate, POST interception, external fallback). `php -l` + `node --check` clean. Live `/assistant/command` plans unchanged (200).
