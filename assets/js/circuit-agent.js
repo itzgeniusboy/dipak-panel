@@ -18,6 +18,8 @@
   var textEl = null;
   var busy = false;
   var listening = false;
+  var wantListening = false;
+  var micBlocked = false;
   var recog = null;
   var home = { x: 0, y: 0 };
 
@@ -253,6 +255,17 @@
     say(msg, 2200);
   }
 
+  /* Ask the browser for the microphone up-front. SpeechRecognition usually
+   * prompts on its own, but priming getUserMedia makes the permission dialog
+   * appear the moment the user first touches the page, so voice is ready by
+   * the time they tap the mic. */
+  function primeMic() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      stream.getTracks().forEach(function (t) { t.stop(); });
+    }).catch(function () { /* denied or unavailable — the mic button still tries */ });
+  }
+
   function initVoice() {
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     var buttons = document.querySelectorAll('[data-circuit-mic]');
@@ -269,16 +282,31 @@
     recog = new SR();
     recog.lang = 'en-IN';
     recog.interimResults = false;
+    recog.continuous = true;
     recog.maxAlternatives = 1;
+
     recog.onstart = function () { setListening(true); };
-    recog.onend = function () { setListening(false); };
-    recog.onerror = function (e) {
+
+    recog.onend = function () {
       setListening(false);
+      // Chrome ends the session after a short silence; if the user still wants
+      // to talk, quietly reopen it so the mic stays hands-free.
+      if (wantListening) {
+        setTimeout(function () {
+          if (!wantListening) return;
+          try { recog.start(); setListening(true); } catch (e) {}
+        }, 250);
+      }
+    };
+
+    recog.onerror = function (e) {
       var code = e && e.error ? e.error : '';
+      if (code === 'no-speech' || code === 'aborted') return;
+      wantListening = false;
+      setListening(false);
       if (code === 'not-allowed' || code === 'service-not-allowed') {
+        micBlocked = true;
         hint('Microphone is blocked. Allow mic access for this site, or type below.');
-      } else if (code === 'no-speech') {
-        hint("I didn't hear anything — try again or type below.");
       } else if (code === 'audio-capture') {
         hint('No microphone found — type your command below instead.');
       } else if (code === 'network') {
@@ -286,19 +314,30 @@
       } else {
         hint('Mic trouble — type your command below instead.');
       }
-      listening = false;
     };
+
     recog.onresult = function (e) {
       var text = e.results[e.results.length - 1][0].transcript;
       command(text);
     };
 
     function toggle() {
-      if (listening) { try { recog.stop(); } catch (e) {} return; }
+      if (wantListening) {
+        wantListening = false;
+        try { recog.stop(); } catch (e) {}
+        setListening(false);
+        return;
+      }
+      if (micBlocked) {
+        hint('Microphone is blocked. Allow mic access in the address bar, then reload.');
+        return;
+      }
+      wantListening = true;
       try {
         recog.start();
         setListening(true);
       } catch (e) {
+        wantListening = false;
         hint('This browser cannot listen — type your command below instead.');
       }
     }
@@ -339,6 +378,30 @@
     initVoice();
     resume();
     greet();
+
+    // Ask for the mic up front so the permission prompt appears early and the
+    // mic button just works the first time it is pressed.
+    var primed = false;
+    function primeOnce() {
+      if (primed) return;
+      primed = true;
+      primeMic();
+      document.removeEventListener('pointerdown', primeOnce, true);
+      document.removeEventListener('keydown', primeOnce, true);
+      document.removeEventListener('touchstart', primeOnce, true);
+    }
+    document.addEventListener('pointerdown', primeOnce, true);
+    document.addEventListener('keydown', primeOnce, true);
+    document.addEventListener('touchstart', primeOnce, true);
+    setTimeout(function () {
+      try {
+        if (navigator.permissions && navigator.permissions.query) {
+          navigator.permissions.query({ name: 'microphone' }).then(function (st) {
+            if (st.state === 'granted') primeOnce();
+          }).catch(function () {});
+        }
+      } catch (e) {}
+    }, 600);
   }
 
   window.Circuit = {

@@ -5,6 +5,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html, body { height: 100%; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 body {
   margin: 0;
@@ -62,8 +63,7 @@ p { margin: 0 0 var(--s3); color: var(--mute); }
   font-family: var(--font-display);
   font-size: var(--t-3xl);
   font-weight: 600;
-  letter-spacing: -0.04em;
-  line-height: 1.02;
+  line-height: 1.1;
 }
 
 .mono { font-family: var(--font-mono); font-variant-ligatures: none; }
@@ -103,6 +103,7 @@ p { margin: 0 0 var(--s3); color: var(--mute); }
   padding: 0 var(--s5);
   height: var(--shell-top);
   background: color-mix(in srgb, var(--ground) 82%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
   backdrop-filter: blur(14px) saturate(1.2);
   border-bottom: 1px solid var(--line);
 }
@@ -842,18 +843,43 @@ dialog.dlg[open]::backdrop { animation: fade-in var(--d-enter) var(--ease-settle
 
 @media (max-width: 900px) {
   .shell { grid-template-columns: 1fr; grid-template-areas: 'top' 'main'; }
+
+  /* The translucent blurred top bar forces Chrome-Android into a soft
+   * composited layer and makes the whole page (and drawer) look fuzzy.
+   * On phones we drop the blur entirely and use a solid bar. */
+  .shell__top {
+    background: var(--ground);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    padding-left: max(var(--s4), env(safe-area-inset-left));
+    padding-right: max(var(--s4), env(safe-area-inset-right));
+  }
+
   .shell__side {
     position: fixed;
     inset: var(--shell-top) auto 0 0;
-    width: 268px;
+    width: min(280px, 84vw);
     height: calc(100vh - var(--shell-top));
     z-index: 50;
     background: var(--deep);
-    transform: translateX(-100%);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    transform: translate3d(-100%, 0, 0);
     transition: transform var(--d-page) var(--ease-glide);
     box-shadow: var(--shadow-3);
+    /* Crisp text: keep the sliding layer on whole pixels and never scale it. */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: max(var(--s5), env(safe-area-inset-bottom));
   }
-  .shell__side[data-open='true'] { transform: none; }
+  .shell__side[data-open='true'] { transform: translate3d(0, 0, 0); }
+  .nav__item,
+  .nav__label,
+  .nav__icon { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+
   .shell__main { padding: var(--s4) var(--s4) var(--s8); }
   .auth { grid-template-columns: 1fr; }
   .auth__aside { display: none; }
