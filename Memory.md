@@ -4,7 +4,7 @@
 
 ## Project
 - **Goal:** Rebuild the CodeIgniter 4 auth screens of the DIPAK GAMING panel against the `dusk` design system in `DESIGN.md`.
-- **Last worked:** 2026-10-05
+- **Last worked:** 2026-10-06
 
 ## Progress Log
 - 2026-10-05: Rewrote 5 auth views to the new design system — `register`, `forgot-password`, `reset-password`, `otp`, `device-reset`. All now extend `Layout/Auth`, use `.field/.label/.input/.hint/.error-text`, `form_open()`/`form_close()`, `data-mt` on the outer wrapper only, `data-press` on submits, `data-flash` alerts. No Bootstrap, jQuery, SweetAlert2, inline `<style>` or CDN.
@@ -156,6 +156,19 @@
 
 **Update — chrome + conversation (voice-only):** user wants Circuit to **talk back** and run every panel task by voice, and no emoji. Removed the "Create a key" / "Keys" / "Use it from outside" cards so the Assistant page is just the Gemini card + "What Circuit can do" + "Voice commands" (per-user `ckt_` code is left dormant). Renamed the nav section/item to **Circuit**. All header/agent glyphs are now inline SVG (`🎙`,`🔊`,`🔇`,`☰`,`✕` → `.ico` in `app.css`; `sound.js` no longer writes emoji, it toggles `aria-pressed` and CSS shows one speaker). `Gemini::systemPrompt` now explicitly chats in EN/Hinglish and always answers; `circuit-agent.js` `greet()` says one hello per session.
 
-## 2026-10-06 — mic reliability, mobile chrome, spoken durations
+## 2026-10-06 — mic reliability, mobile chrome, spoken durations (old)
 
 Mic never reached `/assistant/command` (curl showed no POST) — SpeechRecognition was blocked/unsupported and the page gave no feedback. Fixes: `circuit-agent.js` now **primes the mic on the first user gesture** (guards a permission prompt), runs SpeechRecognition in continuous mode with auto-restart, and prints a clear reason on `not-allowed` / `no-speech` / `audio-insecure`. Added a **text box inside the agent panel** and a mic-only fallback so Circuit works even when the browser can't listen. Mobile: `app.css` drops `backdrop-filter` on the small-screen layout (was muddied the panel), thickens borders and tap targets, and the header/nav collapse is smoother. `KeyFactory::generate()` now **snaps an off-menu spoken duration to the closest sold plan** ("2 days" → 72h when 48h isn't sold) and notes the swap instead of failing. Commits: `9ffe8c8`→`558c79d`.
+
+## 2026-10-06 — Circuit drives the panel by hand (UI automation)
+
+Circuit no longer runs actions behind the UI — it walks the pages and presses the real buttons, types into the real fields, like a person.
+
+- **New `app/Libraries/Assistant/PanelMap.php`** maps an action to UI steps: `goto`, `fill`, `tap`, `text` (press a button by its visible label), `wait`, `read` (read a field aloud), `inRow` (press the button inside the table row holding a given key). Recipes: navigate, key.list, price.list, balance/user.info, key.generate (fill game/duration/devices → press "Generate license" → read `#madeKey`), key.delete (row by `[data-copy="KEY"]`), key.delete_unused, settings.site_name. Unknown actions fall back to `Actions::run()` server-side (e.g. assistant.key.* has no UI). `Assistant::command()` tries `PanelMap::plan()` first.
+- `KeyFactory::nearestPlan()` (public) exposes duration snapping to PanelMap.
+- **`assets/js/circuit-agent.js`**: new step executors (`fill`, `text`, `wait`/`waitFor`, `read`, `inRow`, auto-confirm on `[data-confirm]`), plus it snapshots the remaining plan into `circuit.resume` before **every** step, so a plain form submit + redirect resumes the rest. Fetch reads the body as text first and reports the HTTP status instead of a blank "could not reach".
+- `HistoryModel`: `useTimestamps = false` (the `history` table has no `created_at`).
+- `Config\Security`: `regenerate = false` so concurrent AJAX POSTs don't invalidate each other's token.
+- Commit `1ae2b33`. jsdom harness (`/usr/tmp/opencode/jt/cjrun.js`) extended: fill select/number, click-by-text, read, resume-cleared all pass, no JS errors.
+
+**Next:** live end-to-end test of a full UI plan once the login rate-limit resets (harness stubs navigation, so real redirects are reasoned, not observed); optionally extend PanelMap to ExtendDuration / approvals / manage-users.
