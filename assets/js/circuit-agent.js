@@ -248,6 +248,11 @@
     if (agentEl) agentEl.classList.toggle('is-listening', on);
   }
 
+  function hint(msg) {
+    if (window.App) App.toast(msg, 'warn');
+    say(msg, 2200);
+  }
+
   function initVoice() {
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     var buttons = document.querySelectorAll('[data-circuit-mic]');
@@ -255,7 +260,7 @@
     if (!SR) {
       buttons.forEach(function (b) {
         b.addEventListener('click', function () {
-          if (window.App) App.toast('This browser cannot listen. Use an API key from /assistant instead.', 'warn');
+          hint('This browser cannot listen — type your command below instead.');
         });
       });
       return;
@@ -267,7 +272,22 @@
     recog.maxAlternatives = 1;
     recog.onstart = function () { setListening(true); };
     recog.onend = function () { setListening(false); };
-    recog.onerror = function () { setListening(false); };
+    recog.onerror = function (e) {
+      setListening(false);
+      var code = e && e.error ? e.error : '';
+      if (code === 'not-allowed' || code === 'service-not-allowed') {
+        hint('Microphone is blocked. Allow mic access for this site, or type below.');
+      } else if (code === 'no-speech') {
+        hint("I didn't hear anything — try again or type below.");
+      } else if (code === 'audio-capture') {
+        hint('No microphone found — type your command below instead.');
+      } else if (code === 'network') {
+        hint('Voice needs a network connection — type your command below.');
+      } else {
+        hint('Mic trouble — type your command below instead.');
+      }
+      listening = false;
+    };
     recog.onresult = function (e) {
       var text = e.results[e.results.length - 1][0].transcript;
       command(text);
@@ -275,7 +295,12 @@
 
     function toggle() {
       if (listening) { try { recog.stop(); } catch (e) {} return; }
-      try { recog.start(); } catch (e) {}
+      try {
+        recog.start();
+        setListening(true);
+      } catch (e) {
+        hint('This browser cannot listen — type your command below instead.');
+      }
     }
 
     buttons.forEach(function (b) { b.addEventListener('click', toggle); });
@@ -293,6 +318,18 @@
 
     var close = agentEl.querySelector('[data-agent-close]');
     if (close) close.addEventListener('click', function () { sayEl.hidden = true; });
+
+    var form = agentEl.querySelector('[data-agent-ask]');
+    var input = agentEl.querySelector('[data-agent-input]');
+    if (form && input) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var text = input.value.trim();
+        if (!text) return;
+        input.value = '';
+        command(text);
+      });
+    }
 
     computeHome();
     place(home.x, home.y, false);

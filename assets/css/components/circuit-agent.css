@@ -51,6 +51,19 @@
 }
 .agent__say[hidden] { display: none; }
 .agent__text { margin: 0; font-size: var(--t-sm); color: var(--ink); }
+.agent__ask {
+  display: flex;
+  gap: var(--s2);
+  align-items: center;
+  margin-top: var(--s2);
+}
+.agent__input {
+  width: 100%;
+  min-width: 120px;
+  font-size: var(--t-sm);
+  padding: 6px var(--s3);
+}
+.agent__ask .btn { flex: none; }
 .agent__close {
   position: absolute;
   top: -9px;
