@@ -80,3 +80,21 @@
 **Verified:** `php -l` clean on all 8 touched PHP files (PHP 8.4.26 via proot debian; paths must be absolute inside the distro). Commit `c688225`, 18 files, only my changes staged — the parallel Views agent's 7 modified view files were left unstaged.
 
 **Still open (reported, not fixed):** `Auth.php:189` interpolates `$usernam` into SQL; password reset still flows token+key through the URL; `verify_pass.php` GET-token path duplicates `Auth::reset_password`; `User::lib()` recurses into itself on POST; `fullname` has no charset rule, so generated keys can embed arbitrary characters; DB password + `TELEGRAM_BOT_TOKEN` still need rotating.
+
+---
+
+## 2026-10-06 — attacker baseURL, CI4 4.7 migration, green E2E
+
+**Biggest find:** `.env` carried `app.baseURL = 'https://SourabhProfessor.in/'` (attacker's own host, present in the *original* untouched copy too). CI4's Debug Toolbar builds its script tag from `site_url()`, so that host rendered into every page — earlier reports of a "planted debugbar script" were a **misdiagnosis**; the script is stock `system/Debug/Toolbar.php:428`, the compromised part was the baseURL. Effect: all generated links/forms/redirects pointed at the attacker's domain.
+
+**Fix:** `app/Config/App.php` — `public string $baseURL = ''` + a constructor (env() is illegal in a property initializer; same lesson as `Database.php:33`) that reads `app.baseURL` and otherwise derives the host from the validated `HTTP_HOST`, falling back to `http://localhost:8080/`. CI 4.7 `SiteURI::normalizeBaseURL()` throws on an empty baseURL, so a blank env value is not enough. `.env` now has an empty `app.baseURL`, `CI_ENVIRONMENT = 'production'`, and the **real** DB credentials merged back from `app/Controllers/.env` in the original (the e2e scripts had left test creds there; `e2e.sh` now backs up/restores via trap).
+
+**CI4 4.7 porting fixes:** all 31 `match(['get','post'], …)` → uppercase (4.7 deprecation spam), `config_item('app.baseURL')` in `app/Views/Server/Server.php:62` replaced with `site_url()` (CI3-only function, was a 500), stock 4.7 `app/Config/*`, `index.php`, `spark`.
+
+**Schema alignment (test harness only, not the app):** controller expects `price_config` (PK `duration`, hours as int) not `price`; `login_throttle` needs `blocked_until BIGINT` + `last_attempt_at BIGINT`.
+
+**Login round trip finally proven** (was never actually exercised before): seeded owner uses `password_hash(md5('XquxmymXDtWRA66D'.$pw))` per `create_password()`, **and needs a future `expiration_date`** — `Auth::login_action` treats `NULL <= now` as expired. CSRF field name is `csrf_test_name` (from `Security::$tokenName`), not `csrf_token`.
+
+**Verification pass:** `php -l` 108/108; 0 two-arg `section()`; `form_open`/`form_close` 47/47; 0 lowercase routes; 0 CI3 leftovers; 0 attacker-host refs outside `.env`; `node --check` both JS. E2E (MariaDB + `php -S` in one proot run): 25 public routes correct (200s / 302s / 404), login → `/dashboard`, **11 authed routes all 200** incl. `/Server`, 0 fatal/parse, 0 deprecation, no host leak. Commit `53229f4`.
+
+**Still open:** `Auth.php:189` SQL interpolation, reset token in URL, `TELEGRAM_BOT_TOKEN`/DB password rotation, `Connect.php:224` uses md5 for a token, `php-sqlite3` not installed so the `tests` DB group can't run, and the panel still needs a real `app.baseURL` set at deployment (empty → request-derived).
