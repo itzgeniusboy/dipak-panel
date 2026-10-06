@@ -1,16 +1,19 @@
 <nav class="nav">
   <div class="nav__label">Panel</div>
-  <a class="nav__item" href="<?= site_url('dashboard') ?>" data-nav><span class="nav__icon">◧</span> Dashboard</a>
-  <a class="nav__item" href="<?= site_url('keys') ?>" data-nav><span class="nav__icon">⚿</span> Keys</a>
-  <a class="nav__item" href="<?= site_url('keys/generate-random') ?>" data-nav><span class="nav__icon">+</span> Generate random</a>
-  <a class="nav__item" href="<?= site_url('keys/generate') ?>" data-nav><span class="nav__icon">✎</span> Generate custom</a>
+  <a class="nav__item" href="<?= site_url('dashboard') ?>" data-nav data-circuit="nav:dashboard"><span class="nav__icon">◧</span> Dashboard</a>
+  <a class="nav__item" href="<?= site_url('keys') ?>" data-nav data-circuit="nav:keys"><span class="nav__icon">⚿</span> Keys</a>
+  <a class="nav__item" href="<?= site_url('keys/generate-random') ?>" data-nav data-circuit="nav:generate"><span class="nav__icon">+</span> Generate random</a>
+  <a class="nav__item" href="<?= site_url('keys/generate') ?>" data-nav data-circuit="nav:generate"><span class="nav__icon">✎</span> Generate custom</a>
+
+  <div class="nav__label">Assistant</div>
+  <a class="nav__item" href="<?= site_url('assistant') ?>" data-nav data-circuit="nav:assistant"><span class="nav__icon">◐</span> Circuit &amp; API keys</a>
 
   <div class="nav__label">Account</div>
-  <a class="nav__item" href="<?= site_url('balance') ?>" data-nav><span class="nav__icon">◈</span> Balance</a>
-  <a class="nav__item" href="<?= site_url('license') ?>" data-nav><span class="nav__icon">◷</span> Licences</a>
+  <a class="nav__item" href="<?= site_url('balance') ?>" data-nav data-circuit="nav:balance"><span class="nav__icon">◈</span> Balance</a>
+  <a class="nav__item" href="<?= site_url('license') ?>" data-nav data-circuit="nav:license"><span class="nav__icon">◷</span> Licences</a>
   <a class="nav__item" href="<?= site_url('ExtendDuration') ?>" data-nav><span class="nav__icon">⌾</span> Extend duration</a>
-  <a class="nav__item" href="<?= site_url('price') ?>" data-nav><span class="nav__icon">≈</span> Price plans</a>
-  <a class="nav__item" href="<?= site_url('settings') ?>" data-nav><span class="nav__icon">⚙</span> Settings</a>
+  <a class="nav__item" href="<?= site_url('price') ?>" data-nav data-circuit="nav:price"><span class="nav__icon">≈</span> Price plans</a>
+  <a class="nav__item" href="<?= site_url('settings') ?>" data-nav data-circuit="nav:settings"><span class="nav__icon">⚙</span> Settings</a>
   <a class="nav__item" href="<?= site_url('twofa') ?>" data-nav><span class="nav__icon">⛨</span> Two-factor</a>
 
   <div class="nav__label">Server</div>

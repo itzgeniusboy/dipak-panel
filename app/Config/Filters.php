@@ -6,6 +6,7 @@ use App\Filters\AuthFilter;
 use App\Filters\AdminFilter;
 use App\Filters\RateLimitFilter;   // ✅ rate limit filter
 use App\Filters\LoginDeviceGuard;  // ✅ NEW: device-block guard for login
+use App\Filters\ApiKeyFilter;      // ✅ Bearer/X-API-Key auth for /api/*
 use CodeIgniter\Config\BaseConfig;
 use CodeIgniter\Filters\CSRF;
 use CodeIgniter\Filters\DebugToolbar;
@@ -22,6 +23,7 @@ class Filters extends BaseConfig
         'admin'      => AdminFilter::class,
         'rateLimit'  => RateLimitFilter::class,  // ✅ keep
         'loginGuard' => LoginDeviceGuard::class, // ✅ add
+        'apikey'     => ApiKeyFilter::class,     // ✅ API bearer auth
     ];
 
     /** @var array */
@@ -37,10 +39,12 @@ class Filters extends BaseConfig
                 ],
             ],
 
-            // ✅ CSRF: connect exempt (as before)
+            // ✅ CSRF: connect exempt (as before); the API is token-auth, not cookie-auth
             'csrf' => [
                 'except' => [
                     'connect',
+                    'api',
+                    'api/*',
                     // 'connect/*', // uncomment if needed
                 ],
             ],
@@ -61,6 +65,8 @@ class Filters extends BaseConfig
                     'reset-password',   // ⬅️ NEW: Reset password page
                     'reset-password/*', // ⬅️ NEW: Reset password variants
                     'price',            // (optional guest page you already route)
+                    'api',              // API uses its own key filter
+                    'api/*',
                 ],
             ],
             // 'honeypot',

@@ -105,6 +105,21 @@ $routes->group('admin', ['filter' => 'admin'], function ($routes) {
 
 $routes->match(['GET', 'POST'], 'connect', 'Connect::index');
 
+/* ------------------------- Circuit assistant ------------------------- */
+$routes->match(['GET', 'POST'], 'assistant', 'Assistant::index');
+$routes->post('assistant/create', 'Assistant::create');
+$routes->post('assistant/revoke/(:num)', 'Assistant::revoke/$1');
+$routes->post('assistant/command', 'Assistant::command');
+
+/* Bearer-authenticated JSON API (no session, no CSRF — key only). */
+$routes->group('api', ['filter' => 'apikey', 'namespace' => 'App\Controllers'], static function ($routes) {
+    $routes->get('/', 'Api::ping');
+    $routes->get('ping', 'Api::ping');
+    $routes->get('actions', 'Api::actions');
+    $routes->match(['GET', 'POST'], 'keys', 'Api::keys');
+    $routes->post('run', 'Api::run');
+});
+
 /*
  * --------------------------------------------------------------------
  * Additional Routing
