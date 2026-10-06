@@ -181,3 +181,13 @@ The panel now swaps **only `<main id="main">`** instead of doing full page loads
 - `Starter.php` loads `soft-nav.js` right after `app.js`; `app.js` exposes `App.bind = { forms: bindForms, flash: readFlash }`; `circuit-agent.js` `goto` now calls `SoftNav.go()` and awaits it (no reload, no resume snapshot needed).
 - Idempotence: document-level copy listeners are bind-once guarded and de-conflicted (`data-copy-in` in generate/generate_random, `button[data-copy]` in referral, `data-copy-el` in assistant); dashboard expiry ticker stops when its element leaves the DOM (`document.contains`); `board.js` marks roots `data-board-bound`. Post forms are fetched+swapped; success does **not** re-submit (no double side-effect).
 - Verified with jsdom (`/usr/tmp/opencode/jt/snrun.js`, 19 checks: swap, title, nav, csrf, script re-run, core-not-rerun, popstate, POST interception, external fallback). `php -l` + `node --check` clean. Live `/assistant/command` plans unchanged (200).
+
+## 2026-10-06 — Everything the agent can't do is now logged
+
+Circuit used to fail silently in the browser (a button it couldn't find just did nothing). Now every failure is written to the server log.
+
+- **`Assistant::report()`** (`POST assistant/report`, session + CSRF, always 204): writes an `ERROR` line with user/action/url/stepIndex/target + the failing `step`, plus a `WARNING` line with the whole failing `plan`. Route added in `Routes.php`.
+- **`circuit-agent.js`**: new `report(reason, extra)` (fire-and-forget `fetch(..., {keepalive:true})`, CSRF header) called when a selector/field/button/row isn't found, a `wait` times out, `goto` has no url, `SoftNav.go` returns false, a step throws, the resume JSON won't parse, or the command fetch fails. `window.Circuit.report` exposed for testing.
+- **Server trace**: `Assistant::command()` logs the command → route → (if no UI recipe) "running server-side" → action failure with code. `App\Config\Logger` production threshold raised `4 → 7` so `info`/`warning` show too (debug still hidden).
+- Verified: `rplive.py` posts a fake failure → `ERROR ... Circuit could not target_not_found {...}`; `livetest.py` shows `INFO Circuit command... / Circuit route...`. jsdom `rprun.js` confirms auto-report on missing target; `snrun.js` 19/19, `cjrun.js` green.
+- Log-noise fixes so Circuit lines stand out: declared `Auth::$userModel` (killed ~243 `dynamic property ... deprecated` warnings), `Gemini` HTTP errors now include the model + response body, and stale `created_at` insert errors were the pre-`useTimestamps=false` HistoryModel bug (gone).

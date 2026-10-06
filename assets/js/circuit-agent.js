@@ -22,6 +22,9 @@
   var micBlocked = false;
   var recog = null;
   var home = { x: 0, y: 0 };
+  var currentAction = '';
+  var currentStep = -1;
+  var lastPlan = [];
 
   function meta(name) {
     var m = document.querySelector('meta[name="' + name + '"]');
@@ -40,6 +43,33 @@
   function base() {
     var b = meta('app-base');
     return b || '/';
+  }
+
+  /* When Circuit cannot find or press something, tell the server so the reason
+   * lands in the log instead of dying silently in the browser. Fire-and-forget:
+   * never let logging itself interrupt the plan. */
+  function report(reason, extra) {
+    try {
+      var payload = {
+        reason: reason,
+        action: currentAction,
+        url: location.pathname + location.search,
+        stepIndex: currentStep,
+        plan: lastPlan,
+        ua: navigator.userAgent
+      };
+      if (extra) { for (var k in extra) { if (Object.prototype.hasOwnProperty.call(extra, k)) payload[k] = extra[k]; } }
+      var name = meta('csrf-header-name') || 'X-CSRF-TOKEN';
+      var headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+      headers[name] = meta('csrf-token');
+      fetch(base() + 'assistant/report', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: headers,
+        body: JSON.stringify(payload),
+        keepalive: true
+      }).catch(function () {});
+    } catch (e) {}
   }
 
   /* ── movement ──────────────────────────────────────────────────────── */
@@ -123,8 +153,12 @@
     setTimeout(function () { el.classList.remove('is-circuited'); }, 760);
   }
 
-  function pressSelector(selector) {
-    var el = selector ? document.querySelector(selector) : null;
+function pressSelector(selector) {
+    var el = document.querySelector(selector);
+    if (!el) {
+      report('target_not_found', { selector: selector });
+      return Promise.resolve();
+    }
     return travelTo(el).then(function () {
       press(el);
       return wait(560);
@@ -201,6 +235,7 @@
     return wait(320).then(function () {
       var ok = document.querySelector('dialog[open] button[value="ok"], dialog.dlg button[value="ok"]');
       if (ok) { press(ok); ok.click(); }
+      else { report('confirm_button_not_found'); }
       return wait(360);
     });
   }
@@ -209,6 +244,7 @@
     plan = Array.isArray(plan) ? plan : [];
     if (busy || !agentEl) return Promise.resolve();
     busy = true;
+    lastPlan = plan;
     var i = 0;
 
     function resolve(step) {
@@ -223,6 +259,7 @@
         return Promise.resolve();
       }
       var step = plan[i++];
+      currentStep = i - 1;
       // Remember what is left before every step. A plain form submit reloads
       // the page — this is what lets the rest of the plan resume afterwards.
       try { sessionStorage.setItem(RESUME, JSON.stringify(plan.slice(i))); } catch (e) {}
@@ -233,12 +270,18 @@
         p = say(step.text, step.hold);
       } else if (step.type === 'goto') {
         p = lead.then(function () { return pressSelector(step.target || step.selector); }).then(function () {
-          if (!step.url) { return wait(500); }
+          if (!step.url) {
+            report('goto_missing_url', { step: step });
+            return wait(500);
+          }
           if (window.SoftNav && window.SoftNav.active) {
             // No reload: only #main swaps, the mic keeps running, and the plan
             // continues right here in the same JavaScript context.
             try { sessionStorage.removeItem(RESUME); } catch (e) {}
-            return window.SoftNav.go(step.url, true).then(function () { return wait(300); });
+            return window.SoftNav.go(step.url, true).then(function (ok) {
+              if (ok === false) { report('soft_nav_failed', { step: step, target: step.url }); }
+              return wait(300);
+            });
           }
           var rest = plan.slice(i);
           try { sessionStorage.setItem(RESUME, JSON.stringify(rest)); } catch (e) {}
@@ -248,21 +291,33 @@
       } else if (step.type === 'fill' || step.type === 'select' || step.type === 'check') {
         p = lead.then(function () {
           var el = resolve(step);
+          if (!el) {
+            report('field_not_found', { step: step });
+            return say('I could not find that field on this screen.', 1400);
+          }
           return travelTo(el).then(function () { setValue(el, step.value); return wait(140); });
         });
       } else if (step.type === 'wait') {
         if (step.selector) {
-          p = lead.then(function () { return waitFor(step.selector, step.ms || 6000); });
+          p = lead.then(function () {
+            return waitFor(step.selector, step.ms || 6000).then(function (found) {
+              if (!found) { report('wait_timeout', { step: step, selector: step.selector }); }
+            });
+          });
         } else {
           p = lead.then(function () { return wait(step.ms || 600); });
         }
       } else if (step.type === 'text') {
         p = lead.then(function () {
           var el = findText(step.text, step.scope ? document.querySelector(step.scope) : document);
+          if (!el) {
+            report('button_not_found', { step: step, text: step.text });
+            return say('I could not find that button.', 1400);
+          }
           return travelTo(el).then(function () {
             press(el);
-            var needsOk = el && el.hasAttribute && el.hasAttribute('data-confirm');
-            el && el.click();
+            var needsOk = el.hasAttribute && el.hasAttribute('data-confirm');
+            el.click();
             return needsOk ? confirmDialog() : wait(560);
           });
         });
@@ -273,16 +328,21 @@
           var anchor = document.querySelector(step.find || '');
           var row = anchor && anchor.closest ? anchor.closest(step.row || 'tr') : null;
           var el = row ? row.querySelector(step.click || '') : null;
+          if (!el) {
+            report('row_button_not_found', { step: step, find: step.find, click: step.click });
+            return say('I could not find that row to act on.', 1400);
+          }
           return travelTo(el).then(function () {
             press(el);
-            var needsOk = el && el.hasAttribute && el.hasAttribute('data-confirm');
-            el && el.click();
+            var needsOk = el.hasAttribute && el.hasAttribute('data-confirm');
+            el.click();
             return needsOk ? confirmDialog() : wait(560);
           });
         });
       } else if (step.type === 'read') {
         p = lead.then(function () {
           var el = resolve(step);
+          if (!el) { report('read_target_not_found', { step: step }); }
           var val = el ? (el.value || el.textContent || '') : '';
           val = String(val).trim();
           return step.say !== false ? say((step.prefix || '') + val, 2000) : Promise.resolve();
@@ -291,16 +351,23 @@
         // default: press a target like a person
         p = lead.then(function () {
           var el = resolve(step);
+          if (!el) {
+            report('target_not_found', { step: step, selector: step.target || step.selector });
+            return say('I could not find that on this screen.', 1400);
+          }
           return travelTo(el).then(function () {
             press(el);
-            var needsOk = el && el.hasAttribute && el.hasAttribute('data-confirm');
-            el && el.click();
+            var needsOk = el.hasAttribute && el.hasAttribute('data-confirm');
+            el.click();
             return needsOk ? confirmDialog() : wait(560);
           });
         });
       }
 
-      return p.then(next, next);
+      return p.then(next, function (err) {
+        report('step_exception', { step: step, error: String((err && err.message) || err) });
+        next();
+      });
     }
 
     return next();
@@ -311,8 +378,8 @@
     return new Promise(function (res) {
       var deadline = Date.now() + (ms || 6000);
       (function poll() {
-        if (document.querySelector(selector)) return res();
-        if (Date.now() > deadline) return res();
+        if (document.querySelector(selector)) return res(true);
+        if (Date.now() > deadline) return res(false);
         setTimeout(poll, 120);
       })();
     });
@@ -324,7 +391,7 @@
     if (!raw) return;
     try { sessionStorage.removeItem(RESUME); } catch (e) {}
     var plan;
-    try { plan = JSON.parse(raw); } catch (e) { return; }
+    try { plan = JSON.parse(raw); } catch (e) { report('resume_parse_failed', { raw: String(raw).slice(0, 400) }); return; }
     if (Array.isArray(plan) && plan.length) {
       setTimeout(function () { run(plan); }, 450);
     }
@@ -372,6 +439,7 @@
         return parsed;
       });
     }).then(function (res) {
+      currentAction = res.action || currentAction;
       if (res.csrf) {
         var m = document.querySelector('meta[name="csrf-token"]');
         if (m) m.setAttribute('content', res.csrf);
@@ -380,6 +448,7 @@
       return run(res.plan).then(function () { return res; });
     }).catch(function (e) {
       var status = (e && e.status) ? ' (' + e.status + ')' : '';
+      report('command_failed', { text: text, status: (e && e.status) || 0, error: String((e && e.message) || e) });
       if (window.App) App.toast('Assistant request failed' + status + '.', 'bad');
       return say('I could not reach the panel' + status + '.').then(function () { return { ok: false }; });
     });
@@ -554,6 +623,7 @@
     command: command,
     run: run,
     say: say,
+    report: report,
     moveHome: moveHome,
     isBusy: function () { return busy; }
   };

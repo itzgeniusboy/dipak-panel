@@ -83,7 +83,8 @@ class Gemini
             $status = $res->getStatusCode();
 
             if ($status < 200 || $status >= 300) {
-                log_message('warning', "Gemini HTTP {$status}");
+                $why = mb_substr((string) $res->getBody(), 0, 500);
+                log_message('warning', "Gemini HTTP {$status} on model " . self::model() . " — {$why}");
 
                 return null;
             }

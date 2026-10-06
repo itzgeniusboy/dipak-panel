@@ -11,6 +11,7 @@ use App\Libraries\Telegram;      // ✅ Telegram OTP sender
 class Auth extends BaseController
 {
     protected $user;
+    protected $userModel;
     protected $deviceResetLimit = 2; // ✅ yaha number change karke reset limit badha/ghata sakte ho
 
     public function __construct()

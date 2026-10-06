@@ -155,7 +155,12 @@ class Assistant extends BaseController
             ]);
         }
 
+        log_message('info', 'Circuit has no UI recipe for "' . $route['action'] . '" — running it server-side.');
         $result = Actions::run($route['action'], $route['params'], $this->user, $this->userId);
+
+        if (! $result['ok']) {
+            log_message('error', 'Circuit action "' . $route['action'] . '" failed (' . ($result['code'] ?? 0) . '): ' . $result['message']);
+        }
 
         $target = $result['client']['target'] ?? null;
         $url    = $result['client']['url'] ?? null;
@@ -194,6 +199,41 @@ class Assistant extends BaseController
                 'msg'  => $result['message'],
             ],
         ]);
+    }
+
+    /**
+     * The browser reports anything Circuit could not do (button not found,
+     * navigation failed, a step threw) so the reason lands in the log instead
+     * of vanishing in devtools. Fire-and-forget — always answers 204.
+     */
+    public function report()
+    {
+        if (! $this->request->is('post')) {
+            return $this->response->setStatusCode(405);
+        }
+
+        $body = $this->request->getJSON(true) ?: [];
+        $cut  = static fn ($v, $n = 300) => mb_substr((string) $v, 0, $n);
+
+        $reason = $cut($body['reason'] ?? 'unknown', 80);
+        $step   = is_array($body['step'] ?? null) ? $body['step'] : [];
+        $detail = [
+            'user'      => $this->userId,
+            'reason'    => $reason,
+            'action'    => $cut($body['action'] ?? ''),
+            'url'       => $cut($body['url'] ?? ''),
+            'stepIndex' => (int) ($body['stepIndex'] ?? 0),
+            'target'    => $cut($step['target'] ?? $step['selector'] ?? $step['text'] ?? $body['target'] ?? $body['selector'] ?? ''),
+            'step'      => $step,
+        ];
+
+        $level = $reason === 'goto_missing_url' ? 'warning' : 'error';
+        log_message($level, 'Circuit could not ' . $reason . ' — ' . json_encode($detail, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+
+        // Keep the whole failing plan too — it is what you actually need to debug.
+        if (! empty($body['plan'])) {
+            log_message('warning', 'Circuit failing plan: ' . $cut(json_encode($body['plan'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 1000));
+        }
     }
 
     private function json(array $payload)

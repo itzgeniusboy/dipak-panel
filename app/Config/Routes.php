@@ -111,6 +111,7 @@ $routes->post('assistant/create', 'Assistant::create');
 $routes->post('assistant/ai', 'Assistant::ai');
 $routes->post('assistant/revoke/(:num)', 'Assistant::revoke/$1');
 $routes->post('assistant/command', 'Assistant::command');
+$routes->post('assistant/report', 'Assistant::report');
 
 /* Bearer-authenticated JSON API (no session, no CSRF — key only). */
 $routes->group('api', ['filter' => 'apikey', 'namespace' => 'App\Controllers'], static function ($routes) {
