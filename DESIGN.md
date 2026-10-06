@@ -4,29 +4,38 @@ Every view is rebuilt against this. Read this file before writing any view.
 
 ## Files that already exist (use them, do not recreate)
 
-- `assets/css/tokens.css` — colours, type, spacing, curves
+- `assets/css/tokens.css` — colours, type, spacing, curves (**the only place hex lives**)
 - `assets/css/app.css` — every component class
+- `assets/css/components/mascot.css` — mascot poses + floating helper
+- `assets/css/components/board.css` — task board surface
+- `assets/css/components/transitions.css` — cross-page View Transitions
 - `assets/js/motion.js` — `window.MT`, the runtime
 - `assets/js/app.js` — `window.App`, toasts and dialogs
+- `assets/js/mascot.js` — `window.Mascot`, mood from real events
+- `assets/js/board.js` — task board behaviour (pointer drag)
+- `app/Views/Partials/Mascot.php` — the mascot SVG (inline, themed)
 - `app/Views/Layout/Auth.php` — auth shell, has `$this->renderSection('content')`
 - `app/Views/Auth/login.php` — **reference implementation, copy its idioms**
 
 ## Look
 
-`dusk`. `data-look="dusk"` on `<html>`. Tokens:
+`dusk` (neon cut). `data-look="dusk"` on `<html>`. Tokens:
 
 | token | value | use |
 |---|---|---|
-| `--ground` | `#15131c` | the page, ~70% of the frame |
-| `--deep` | `#08070b` | inputs, table head, insets |
-| `--card` | `#1f1c29` | surfaces |
-| `--card-raised` | `#262232` | buttons, toasts |
-| `--line` | `#34313f` | hairlines and borders |
-| `--mute` | `#807c8c` | labels, secondary text (4.6:1 on ground) |
-| `--ink` | `#efece6` | body and headings (13.2:1) |
-| `--accent` | `#7c6cff` | the one colour that means something |
-| `--accent2` | `#f4c64f` | its partner, used rarely |
-| `--good` `--warn` `--bad` | | status only |
+| `--ground` | `#0B0F0C` | the page, ~70% of the frame |
+| `--deep` | `#060806` | inputs, table head, insets, board lanes |
+| `--card` | `#131813` | surfaces |
+| `--card-raised` | `#1A211A` | buttons, toasts |
+| `--line` | `#263027` | hairlines and borders |
+| `--mute` | `#7C8A7E` | labels, secondary text (4.9:1 on ground) |
+| `--ink` | `#EAF3EA` | body and headings (15.6:1) |
+| `--accent` | `#39FF14` | the one colour that means something (15.2:1) |
+| `--accent-hi` | `#6BFF4D` | accent hover |
+| `--accent-lo` | `#22C40B` | accent pressed |
+| `--accent-ink` | `#061004` | text **on** the accent — never white |
+| `--accent2` | `#B6FF3D` | its partner, used rarely |
+| `--good` `--warn` `--bad` | `#2EE6A8` `#FFC24A` `#FF5A5F` | status only |
 
 Type: `--font-display` (Geist) headings, `--font-text` (Inter) body, `--font-mono` (Geist Mono) keys, numbers, labels.
 
@@ -88,6 +97,17 @@ Rules that make it feel made rather than animated:
 `.switch` `.tabs` `.tab` `.chip` `.chip--good` `.chip--warn` `.chip--bad` `.chip--accent` `.dot` `.dot--live`
 `.alert` `.alert--good` `.alert--bad` `.alert--warn` `.meter` `.meter__fill`
 `.row` `.row--wrap` `.row--end` `.row--between` `.stack` `.gap-2` `.gap-3` `.mt-2..5` `.mb-0..5` `.tr` `.tc` `.nowrap`
+
+### Component files
+
+- **Mascot** — `<?= $this->include('Partials/Mascot', ['mood' => 'idle', 'size' => 72]) ?>`.
+  Poses: `idle` `happy` `alert` `thinking`. Drive it with `Mascot.pose('happy', 2000)`;
+  it also answers every `app:toast`. The floating helper (`.helper`) lives in `Starter.php`.
+- **Task board** — `[data-board]` with `[data-col]` lanes, `[data-list]`, `[data-count]`,
+  `[data-add="<col>"]` add forms (mark them `data-no-busy`) and `[data-card]` items.
+  State lives in `localStorage('panel.tasks.v1')`; never read the DOM back.
+- **Page transitions** — `transitions.css` only; cross-document View Transitions.
+  `.brand__mark` carries (morphs) between pages.
 `.dialog` (native `<dialog class="dlg">` via `App.dialog`)
 
 ## Forms

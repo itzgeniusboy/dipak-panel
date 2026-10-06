@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#15131c">
+<meta name="theme-color" content="#0B0F0C">
 <title><?= isset($title) && $title ? esc($title) . ' · ' : '' ?><?= BASE_NAME ?></title>
 
 <link rel="icon" href="<?= base_url('assets/logo.svg') ?>" type="image/svg+xml">
@@ -14,6 +14,9 @@
 
 <link rel="stylesheet" href="<?= base_url('assets/css/tokens.css') ?>">
 <link rel="stylesheet" href="<?= base_url('assets/css/app.css') ?>">
+<link rel="stylesheet" href="<?= base_url('assets/css/components/mascot.css') ?>">
+<link rel="stylesheet" href="<?= base_url('assets/css/components/board.css') ?>">
+<link rel="stylesheet" href="<?= base_url('assets/css/components/transitions.css') ?>">
 <?= $this->renderSection('head') ?>
 </head>
 <body>
@@ -61,8 +64,19 @@
 <div class="scrim"></div>
 <div class="toasts" id="toasts"></div>
 
+<div class="helper" data-helper>
+  <div class="helper__bubble">
+    <button class="helper__close" type="button" data-helper-close aria-label="Hide helper">✕</button>
+    I'm <b>Circuit</b> — every key you generate, I count it.
+  </div>
+  <button class="helper__mascot" type="button" data-press aria-label="Poke the mascot">
+    <?= $this->include('Partials/Mascot', ['mood' => 'idle', 'size' => 72]) ?>
+  </button>
+</div>
+
 <script src="<?= base_url('assets/js/motion.js') ?>"></script>
 <script src="<?= base_url('assets/js/app.js') ?>"></script>
+<script src="<?= base_url('assets/js/mascot.js') ?>"></script>
 <?= $this->renderSection('script') ?>
 <?= $this->renderSection('js') ?>
 

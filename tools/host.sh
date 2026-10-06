@@ -54,6 +54,16 @@ esac
 
 # --- re-exec inside proot if we were called from Termux ----------------------
 if ! command -v mariadbd >/dev/null 2>&1; then
+  # refuse to start a second session over a live one (it would clobber .env)
+  if [ -f "$PIDFILE" ]; then
+    OLD=$(cat "$PIDFILE" 2>/dev/null || true)
+    if [ -n "${OLD:-}" ] && kill -0 "$OLD" 2>/dev/null; then
+      echo "already running (pid $OLD)."
+      echo "  stop it first:  bash tools/host.sh --stop"
+      echo "  or Ctrl-C in the terminal that started it."
+      exit 1
+    fi
+  fi
   if [ -f "$ENV_BAK" ]; then
     echo "! previous session left a test .env behind — restoring first"
     restore_env
@@ -65,6 +75,13 @@ fi
 if [ -f "$ENV_BAK" ]; then
   echo "! stale backup from an unclean stop — restoring"
   restore_env
+fi
+if [ -f "$PIDFILE" ]; then
+  OLD=$(cat "$PIDFILE" 2>/dev/null || true)
+  if [ -n "${OLD:-}" ] && kill -0 "$OLD" 2>/dev/null; then
+    echo "already running (pid $OLD) — refusing to start a second session."
+    exit 1
+  fi
 fi
 echo $$ >"$PIDFILE"
 

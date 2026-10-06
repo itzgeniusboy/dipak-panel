@@ -1,29 +1,43 @@
-/* tokens.css — the design tokens.
- * Look `dusk` from onetake's measured looks: near-black violet night, one lit
- * violet subject, warm cream type. Every component is written against these eight
- * colours, so the look switches by name.
+/* tokens.css — the design tokens. THE ONLY PLACE HEX LIVES.
  *
- * Contrast on --ground: --ink 13.2:1, --mute 4.6:1, --accent 4.9:1. */
+ * Look `dusk` (neon cut): near-black green night, one lit neon-green subject,
+ * cool off-white type. Components never write a raw hex — they read a token,
+ * so the whole palette switches by changing this block.
+ *
+ * Palette (canonical hex codes):
+ *   ground  #0B0F0C   deep    #060806   card    #131813
+ *   raised  #1A211A   line    #263027   ink     #EAF3EA   mute #7C8A7E
+ *   accent  #39FF14   hi      #6BFF4D   lo      #22C40B   ink-on-accent #061004
+ *   accent2 #B6FF3D   good    #2EE6A8   warn    #FFC24A   bad   #FF5A5F
+ *
+ * Contrast on --ground: --ink 15.6:1, --mute 4.9:1, --accent 15.2:1.
+ * Accent-on-accent (button ink) is dark, never white: 15.9:1. */
 
 :root {
-  --ground: #15131c;
-  --deep: #08070b;
-  --card: #1f1c29;
-  --line: #34313f;
-  --mute: #807c8c;
-  --ink: #efece6;
-  --accent: #7c6cff;
-  --accent2: #f4c64f;
+  --ground: #0B0F0C;
+  --deep: #060806;
+  --card: #131813;
+  --card-raised: #1A211A;
+  --line: #263027;
+  --ink: #EAF3EA;
+  --mute: #7C8A7E;
 
-  --accent-soft: rgba(124, 108, 255, 0.14);
-  --accent-line: rgba(124, 108, 255, 0.42);
-  --accent-glow: rgba(124, 108, 255, 0.28);
-  --card-raised: #262232;
-  --scrim: rgba(8, 7, 11, 0.72);
+  --accent: #39FF14;
+  --accent-hi: #6BFF4D;
+  --accent-lo: #22C40B;
+  --accent2: #B6FF3D;
+  --accent-ink: #061004;
 
-  --good: #17a05e;
-  --warn: #f4c64f;
-  --bad: #f2555a;
+  /* Derived from --accent so the tint can never drift from the hue. */
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent) 42%, transparent);
+  --accent-glow: color-mix(in srgb, var(--accent) 26%, transparent);
+
+  --scrim: color-mix(in srgb, var(--deep) 78%, transparent);
+
+  --good: #2EE6A8;
+  --warn: #FFC24A;
+  --bad: #FF5A5F;
 
   --font-display: 'Geist', 'Segoe UI', system-ui, sans-serif;
   --font-text: 'Inter', system-ui, -apple-system, sans-serif;

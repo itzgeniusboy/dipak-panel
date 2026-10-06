@@ -145,8 +145,8 @@ p { margin: 0 0 var(--s3); color: var(--mute); }
   border-radius: 8px;
   display: grid;
   place-items: center;
-  background: linear-gradient(150deg, var(--accent), #4a3fd6);
-  color: #fff;
+  background: linear-gradient(150deg, var(--accent), var(--accent2));
+  color: var(--accent-ink);
   font-size: 13px;
   font-weight: 700;
   box-shadow: 0 0 18px var(--accent-glow);
@@ -432,11 +432,11 @@ table.tbl tbody tr:hover { background: color-mix(in srgb, var(--accent) 7%, tran
 
 .btn--primary {
   --btn-bg: var(--accent);
-  --btn-ink: #fff;
+  --btn-ink: var(--accent-ink);
   --btn-line: var(--accent);
   box-shadow: 0 4px 20px var(--accent-glow);
 }
-.btn--primary:hover { --btn-bg: #8b7cff; }
+.btn--primary:hover { --btn-bg: var(--accent-hi); }
 
 .btn--ghost { --btn-bg: transparent; }
 .btn--ghost:hover { --btn-bg: color-mix(in srgb, var(--ink) 6%, transparent); }
@@ -823,11 +823,11 @@ dialog.dlg[open]::backdrop { animation: fade-in var(--d-enter) var(--ease-settle
   z-index: 999;
   padding: 10px var(--s4);
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-ink);
   border-radius: var(--r);
   transition: top var(--d-hover) var(--ease-quick);
 }
-.skip-link:focus { top: var(--s3); color: #fff; }
+.skip-link:focus { top: var(--s3); color: var(--accent-ink); }
 
 .mt-ghost {
   position: fixed;

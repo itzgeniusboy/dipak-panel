@@ -37,6 +37,10 @@
     };
     el.addEventListener('click', close);
     setTimeout(close, life);
+
+    /* Let anything else on the page answer the toast — the mascot does. */
+    document.dispatchEvent(new CustomEvent('app:toast', { detail: { kind: kind, msg: msg } }));
+
     return el;
   }
 
@@ -79,6 +83,7 @@
 
   function bindForms() {
     document.querySelectorAll('form').forEach(function (form) {
+      if (form.hasAttribute('data-no-busy')) return;
       form.addEventListener('submit', function () {
         var btn = form.querySelector('button[type="submit"]');
         if (!btn || btn.disabled) return;

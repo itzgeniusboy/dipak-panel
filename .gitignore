@@ -9,6 +9,11 @@
 **/.env
 !.env.example
 
+# Local host-script scratch (backup of the real .env + session pid)
+*.env.hostbak
+**/.env.hostbak
+*.pid
+
 # Ignore user uploads
 /uploads/
 

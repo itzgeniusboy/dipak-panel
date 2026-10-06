@@ -1,0 +1,104 @@
+/* mascot.css — the mascot component ("Circuit") and its floating helper.
+ * Reads tokens only. Every pose is CSS; mascot.js only flips data-mood. */
+
+.mascot { display: block; overflow: visible; color: var(--accent); }
+
+.mascot__shadow { fill: var(--deep); opacity: 0.55; }
+.mascot__shell  { fill: var(--card-raised); stroke: var(--accent-line); stroke-width: 1.5; }
+.mascot__brow   { fill: var(--accent-soft); }
+.mascot__wire   { stroke: var(--accent-line); stroke-width: 2; stroke-linecap: round; }
+.mascot__arm    { fill: none; stroke: var(--accent-line); stroke-width: 2.6; stroke-linecap: round; }
+.mascot__eye    { fill: var(--accent); }
+.mascot__pupil  { fill: var(--deep); }
+.mascot__mouth  { fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; }
+.mascot__tip    { fill: var(--accent); }
+.mascot__cheek  { fill: var(--accent); opacity: 0; transition: opacity var(--d-hover) var(--ease-quick); }
+
+/* The rig bobs; the tip breathes; the eyes blink on an odd cadence so the
+ * character never reads as a looping GIF. */
+.mascot__rig   { transform-box: fill-box; transform-origin: 50% 92%; animation: mascot-bob 4.2s var(--ease-glide) infinite; }
+.mascot__blink { transform-box: fill-box; transform-origin: 48px 51px; animation: mascot-blink 6.4s var(--ease-quick) infinite; }
+.mascot__tip   { transform-box: fill-box; transform-origin: center; animation: mascot-pulse 2.6s var(--ease-glide) infinite; }
+.mascot__arm   { transform-box: fill-box; }
+.mascot__arm--l { transform-origin: 6% 10%; }
+.mascot__arm--r { transform-origin: 94% 10%; }
+.mascot__mouth { transform-box: fill-box; transform-origin: center; transition: transform var(--d-enter) var(--ease-snap); }
+
+@keyframes mascot-bob { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-3px) rotate(-1.4deg); } }
+@keyframes mascot-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+@keyframes mascot-blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+@keyframes mascot-wave { 0%, 100% { transform: rotate(0deg); } 30% { transform: rotate(-20deg); } 70% { transform: rotate(12deg); } }
+@keyframes mascot-alert { 0%, 100% { opacity: 1; } 50% { opacity: 0.12; } }
+
+.mascot[data-mood='happy'] .mascot__mouth { transform: scale(1.3, 1.6); }
+.mascot[data-mood='happy'] .mascot__cheek { opacity: 0.85; }
+.mascot[data-mood='happy'] .mascot__arm--r { animation: mascot-wave 0.7s var(--ease-glide) 2; }
+.mascot[data-mood='happy'] .mascot__blink { animation-duration: 2.8s; }
+
+.mascot[data-mood='alert'] .mascot__mouth { transform: scaleY(0.35); }
+.mascot[data-mood='alert'] .mascot__blink { transform: scale(1.14); }
+.mascot[data-mood='alert'] .mascot__tip { animation: mascot-alert 0.5s steps(2, jump-none) infinite; }
+
+.mascot[data-mood='thinking'] .mascot__pupil { transform: translate(-2px, -1px); }
+.mascot[data-mood='thinking'] .mascot__tip { animation-duration: 1.2s; }
+
+/* ── floating helper ─────────────────────────────────────────────────── */
+
+.helper {
+  position: fixed;
+  right: var(--s4);
+  bottom: var(--s4);
+  z-index: 55;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s2);
+  max-width: min(330px, 88vw);
+}
+.helper[hidden] { display: none; }
+
+.helper__mascot {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  line-height: 0;
+  cursor: pointer;
+  border-radius: var(--r-lg);
+  transition: transform var(--d-tap) var(--ease-snap);
+}
+.helper__mascot:active { transform: scale(0.94); }
+
+.helper__bubble {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg) var(--r-lg) var(--r-sm) var(--r-lg);
+  padding: 10px var(--s4);
+  box-shadow: var(--shadow-2);
+  font-size: var(--t-sm);
+  color: var(--ink);
+}
+.helper__bubble b { color: var(--accent); font-weight: 600; }
+.helper__close {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--card-raised);
+  color: var(--mute);
+  cursor: pointer;
+  transition: color var(--d-hover) var(--ease-quick), border-color var(--d-hover) var(--ease-quick);
+}
+.helper__close:hover { color: var(--ink); border-color: var(--accent-line); }
+
+@media (max-width: 640px) {
+  .helper { right: var(--s3); bottom: var(--s3); }
+  .helper__bubble { font-size: var(--t-xs); padding: 8px var(--s3); }
+}
+/* The mascot greeting the login card. */
+.auth__mascot { display: flex; justify-content: center; margin-bottom: var(--s4); }

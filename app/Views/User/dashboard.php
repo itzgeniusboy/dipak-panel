@@ -264,6 +264,35 @@ foreach (['msgSuccess' => 'good', 'msgDanger' => 'bad', 'msgWarning' => 'warn', 
     </div>
   </div>
 
+  <div class="card mt-4" data-mt>
+    <div class="card__head">
+      <h3>Task board</h3>
+      <span class="spacer"></span>
+      <span class="eyebrow">Drag a card — ← → keys work too</span>
+    </div>
+
+    <div class="board" data-board>
+      <?php foreach ([['todo', 'To do'], ['doing', 'Doing'], ['done', 'Done']] as [$col, $label]): ?>
+        <section class="board__col" data-col="<?= esc($col, 'attr') ?>">
+          <div class="board__head">
+            <span class="board__title"><?= esc($label, 'html') ?></span>
+            <span class="board__count" data-count="<?= esc($col, 'attr') ?>">0</span>
+          </div>
+
+          <div class="board__list" data-list="<?= esc($col, 'attr') ?>" role="list"></div>
+
+          <div class="board__foot">
+            <form class="board__add" data-add="<?= esc($col, 'attr') ?>" data-no-busy>
+              <input type="text" placeholder="Add a task…" maxlength="120"
+                     aria-label="New task in <?= esc($label, 'html') ?>">
+              <button type="submit">Add</button>
+            </form>
+          </div>
+        </section>
+      <?php endforeach; ?>
+    </div>
+  </div>
+
   <div class="card mt-4">
     <div class="card__head">
       <h3>This session</h3>
@@ -304,6 +333,7 @@ foreach (['msgSuccess' => 'good', 'msgDanger' => 'bad', 'msgWarning' => 'warn', 
 <?= $this->endSection() ?>
 
 <?= $this->section('script') ?>
+<script src="<?= base_url('assets/js/board.js') ?>"></script>
 <script>
   // Text-only ticker on the expiry tile. No easing, no layout shift: the ground
   // stays still and only the digits change.

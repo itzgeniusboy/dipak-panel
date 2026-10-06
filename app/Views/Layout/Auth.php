@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#15131c">
+<meta name="theme-color" content="#0B0F0C">
 <title><?= isset($title) ? esc($title) . ' · ' : '' ?><?= BASE_NAME ?></title>
 
 <link rel="icon" href="<?= base_url('assets/logo.svg') ?>" type="image/svg+xml">
@@ -14,6 +14,9 @@
 
 <link rel="stylesheet" href="<?= base_url('assets/css/tokens.css') ?>">
 <link rel="stylesheet" href="<?= base_url('assets/css/app.css') ?>">
+<link rel="stylesheet" href="<?= base_url('assets/css/components/mascot.css') ?>">
+<link rel="stylesheet" href="<?= base_url('assets/css/components/board.css') ?>">
+<link rel="stylesheet" href="<?= base_url('assets/css/components/transitions.css') ?>">
 <?= $this->renderSection('head') ?>
 </head>
 <body>
@@ -48,6 +51,7 @@
 
   <main class="auth__main">
     <div class="auth__card" data-mt>
+      <div class="auth__mascot"><?= $this->include('Partials/Mascot', ['mood' => 'idle', 'size' => 84]) ?></div>
       <?= $this->renderSection('content') ?>
     </div>
   </main>
@@ -57,6 +61,7 @@
 
 <script src="<?= base_url('assets/js/motion.js') ?>"></script>
 <script src="<?= base_url('assets/js/app.js') ?>"></script>
+<script src="<?= base_url('assets/js/mascot.js') ?>"></script>
 <?= $this->renderSection('script') ?>
 </body>
 </html>

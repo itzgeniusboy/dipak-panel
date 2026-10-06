@@ -1,0 +1,26 @@
+/* transitions.css — carrying between pages.
+ * Cross-document View Transitions (Chrome/Edge): the next page is not a slide
+ * change, the old one leaves and the new one arrives. Where unsupported this
+ * file is inert and normal navigation happens. */
+
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) { animation: vt-out var(--d-page) var(--ease-glide) both; }
+::view-transition-new(root) { animation: vt-in var(--d-page) var(--ease-glide) both; }
+
+@keyframes vt-out {
+  to { opacity: 0; transform: translateY(-8px) scale(0.994); }
+}
+@keyframes vt-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.994); }
+}
+
+/* The brand mark is shared by every page, so it morphs instead of re-entering. */
+.brand__mark { view-transition-name: brand-mark; }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation: none; }
+}

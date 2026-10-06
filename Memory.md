@@ -98,3 +98,20 @@
 **Verification pass:** `php -l` 108/108; 0 two-arg `section()`; `form_open`/`form_close` 47/47; 0 lowercase routes; 0 CI3 leftovers; 0 attacker-host refs outside `.env`; `node --check` both JS. E2E (MariaDB + `php -S` in one proot run): 25 public routes correct (200s / 302s / 404), login → `/dashboard`, **11 authed routes all 200** incl. `/Server`, 0 fatal/parse, 0 deprecation, no host leak. Commit `53229f4`.
 
 **Still open:** `Auth.php:189` SQL interpolation, reset token in URL, `TELEGRAM_BOT_TOKEN`/DB password rotation, `Connect.php:224` uses md5 for a token, `php-sqlite3` not installed so the `tests` DB group can't run, and the panel still needs a real `app.baseURL` set at deployment (empty → request-derived).
+
+---
+
+## 2026-10-06 — neon-green look, mascot, task board, one-command host
+
+**Reference:** user shared an Instagram reel (a 60s code-drawn launch film for "SCULT OS": camera zooms on every click, one accent colour, sound on every click). This model **cannot read images**, so the reel's frames were useless — the caption metadata (`yt-dlp -J`) is what informed the direction. `yt-dlp` + `ffmpeg` installed in Termux for that.
+
+**Host tool `tools/host.sh`** (proot MariaDB + `php -S 127.0.0.1:8080`, local seeded DB, real `.env` backed up and restored): added `--stop` / `--restore`, a pidfile, a stale-backup recovery, and a guard that refuses to start a second session over a live one.
+**Incident:** two instances did run at once (user's terminal + my test). My run's Termux-branch stale-restore rewrote the *live* session's `.env` back to production creds → that session served 500. Diagnosed via `ps` (procs on `pts/1`), `tools/.env.hostbak`, and a live `/login` fetch. Repaired **without** killing the user's session: pointed `.env` at the local DB (backup kept in `tools/.env.hostbak`, ignored by git) → `/login` 200 again.
+
+**Look `dusk` → neon cut:** `tokens.css` is now the only file with hex. Canonical set: ground `#0B0F0C`, deep `#060806`, card `#131813`, raised `#1A211A`, line `#263027`, ink `#EAF3EA`, mute `#7C8A7E`, accent `#39FF14` (+ `--accent-hi #6BFF4D`, `--accent-lo #22C40B`, `--accent-ink #061004`), accent2 `#B6FF3D`. Tints (`--accent-soft/line/glow`) derive via `color-mix`, so they can't drift. **A11y fix:** `--btn-ink`/skip-link were white on the accent (1.4:1) → `--accent-ink` (15.9:1). `app.css` is now hex-free.
+
+**New components (modular):** `assets/css/components/{mascot,board,transitions}.css`, `app/Views/Partials/Mascot.php` (inline SVG, themed, 4 moods), `assets/js/mascot.js` (moods from real events; app.js now dispatches `app:toast`), `assets/js/board.js` (pointer drag — works on touch, unlike HTML5 DnD — plus ←/→ and Backspace, state in `localStorage('panel.tasks.v1')`, DOM never read back). Task board card added to `User/dashboard.php`; its add-forms carry `data-no-busy` because `app.js` binds a 12s busy spinner to every form. Cross-document **View Transitions** via `transitions.css` only (`.brand__mark` morphs between pages).
+
+**Verified:** `php -l` clean (Starter, Auth, Mascot, dashboard) + `bash -n host.sh`; `node --check` on all 4 JS; live HTTP 200 for `/login`, `/register` and every new asset; login round trip → `303 /dashboard`; **jsdom runtime test** (shimmed `Element.animate`/`matchMedia`): 6 entrance animations fired, 3 lanes rendered, add-task → 1 card + count 1 + persisted JSON, mascot mood `happy` then `alert` on `app:toast`, 0 JS errors.
+
+**Open:** the reel's **sound-on-click** is not implemented (not asked for explicitly — say the word and it's a WebAudio tick); visual fidelity to the reel is unverified since I can't see images; `tools/.env.hostbak` exists right now because the user's live session is still running — its cleanup or `--stop` restores it.
