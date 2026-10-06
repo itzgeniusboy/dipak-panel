@@ -119,16 +119,15 @@ class Auth extends BaseController
 
             // Optional: same expiry message as normal flow
             $expmsg = 'Login Successful!';
-            include('conn.php');
-            if (isset($cekUser->username) && isset($conn)) {
-                $u = mysqli_real_escape_string($conn, $cekUser->username);
-                $sql = "SELECT `expiration_date` FROM `users` WHERE `username` = '$u'";
-                if ($q = mysqli_query($conn, $sql)) {
-                    if ($row = mysqli_fetch_assoc($q)) {
-                        if (!empty($row['expiration_date'])) {
-                            $expmsg = "Account Expires on : " . $row['expiration_date'];
-                        }
-                    }
+            if (isset($cekUser->username)) {
+                $row = \Config\Database::connect()
+                    ->table('users')
+                    ->select('expiration_date')
+                    ->where('username', $cekUser->username)
+                    ->get()
+                    ->getRowArray();
+                if (! empty($row['expiration_date'])) {
+                    $expmsg = 'Account Expires on : ' . $row['expiration_date'];
                 }
             }
 
@@ -184,10 +183,12 @@ class Auth extends BaseController
 
             if (password_verify($hashPassword, $cekUser->password)) {
                 // ✅ Account checks (unchanged)
-                include('conn.php');
-                $sql = "SELECT `expiration_date`, `status` FROM `users` WHERE `username` = '".$usernam."'";
-                $query = mysqli_query($conn, $sql);
-                $userData = mysqli_fetch_assoc($query);
+                $userData = \Config\Database::connect()
+                    ->table('users')
+                    ->select(['expiration_date', 'status'])
+                    ->where('username', $usernam)
+                    ->get()
+                    ->getRowArray();
                 $current_time = date('Y-m-d H:i:s');
 
                 if (!$userData) {

@@ -32,7 +32,7 @@ $joined = !empty($target->created_at) ? date('Y-m-d H:i', strtotime((string) $ta
 ?>
 <?= $this->extend('Layout/Starter') ?>
 
-<?= $this->section('title', 'Edit user') ?>
+<?= $this->section('title') ?>Edit user<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 

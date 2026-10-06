@@ -1,108 +1,17 @@
 <?php
-// The old views included a conn.php that no longer exists in the project.
-// Use the framework's shared MySQLi connection instead.
+// Both extend forms used to be handled here with raw $_SERVER/$_POST, which
+// skipped CSRF, had no level or ownership check, and flashed on keys the shell
+// never renders. User::ExtendDuration() owns all of it now; this view is
+// presentation only, and only reads.
 $db   = \Config\Database::connect();
 $conn = $db->getConnection();
-
-/* -----------------------------
-   Extend ALL Keys (POST)
-------------------------------*/
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['extend_keys_form'])) {
-    $input = trim($_POST['duration'] ?? '');
-    if (preg_match('/^(\d+[HD])$/i', $input, $matches)) {
-        $extra_duration = strtoupper($matches[1]);
-        preg_match('/^(\d+)([HD])$/', $extra_duration, $d_match);
-        $extra_hours = ($d_match[2] === "H") ? (int)$d_match[1] : ((int)$d_match[1] * 24);
-
-        $stmt = $conn->prepare("UPDATE keys_code SET duration = duration + ?");
-        $stmt->bind_param("i", $extra_hours);
-
-        if ($stmt->execute()) {
-            $history_cols = [];
-            $colRes = @mysqli_query($conn, "SHOW COLUMNS FROM history");
-            if ($colRes) {
-                while ($c = mysqli_fetch_assoc($colRes)) {
-                    $history_cols[] = $c['Field'];
-                }
-                mysqli_free_result($colRes);
-            }
-            if (in_array('info', $history_cols, true) && in_array('user_do', $history_cols, true)) {
-                @mysqli_query($conn, "INSERT INTO history (keys_id, user_do, info) VALUES (NULL, 'admin', 'Extended all keys by {$extra_duration}')");
-            } elseif (in_array('description', $history_cols, true) && in_array('activity', $history_cols, true)) {
-                @mysqli_query($conn, "INSERT INTO history (id_user, activity, description) VALUES (NULL, 'Extend Key', 'Extended all keys by {$extra_duration}')");
-            }
-
-            session()->setFlashdata('message', "All keys extended by {$extra_duration}!");
-            session()->setFlashdata('alert-class', 'success');
-        } else {
-            session()->setFlashdata('message', "Failed to extend keys: " . $stmt->error);
-            session()->setFlashdata('alert-class', 'danger');
-        }
-        $stmt->close();
-    } else {
-        session()->setFlashdata('message', "Invalid duration format. Use e.g. 30D or 5H");
-        session()->setFlashdata('alert-class', 'danger');
-    }
-}
-
-/* -----------------------------
-   Extend SINGLE Key (POST)
-------------------------------*/
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['extend_single_form'])) {
-    $user_key = trim($_POST['user_key'] ?? '');
-    $input    = trim($_POST['duration'] ?? '');
-
-    if ($user_key === '') {
-        session()->setFlashdata('message', "Please enter a User Key.");
-        session()->setFlashdata('alert-class', 'danger');
-    } elseif (!preg_match('/^\d+[HD]$/i', $input)) {
-        session()->setFlashdata('message', "Invalid duration format. Use e.g. 30D or 5H");
-        session()->setFlashdata('alert-class', 'danger');
-    } else {
-        $extra_duration = strtoupper($input);
-        preg_match('/^(\d+)([HD])$/', $extra_duration, $d_match);
-        $extra_hours = ($d_match[2] === "H") ? (int)$d_match[1] : ((int)$d_match[1] * 24);
-
-        $stmt = $conn->prepare("UPDATE keys_code SET duration = duration + ? WHERE user_key = ?");
-        $stmt->bind_param("is", $extra_hours, $user_key);
-
-        if ($stmt->execute()) {
-            if ($stmt->affected_rows > 0) {
-                $history_cols = [];
-                $colRes = @mysqli_query($conn, "SHOW COLUMNS FROM history");
-                if ($colRes) {
-                    while ($c = mysqli_fetch_assoc($colRes)) {
-                        $history_cols[] = $c['Field'];
-                    }
-                    mysqli_free_result($colRes);
-                }
-                $safeKey = mysqli_real_escape_string($conn, $user_key);
-                $note = 'Extended key ' . $safeKey . ' by ' . $extra_duration;
-                if (in_array('info', $history_cols, true) && in_array('user_do', $history_cols, true)) {
-                    @mysqli_query($conn, "INSERT INTO history (keys_id, user_do, info) VALUES (NULL, 'panel', '{$note}')");
-                } elseif (in_array('description', $history_cols, true) && in_array('activity', $history_cols, true)) {
-                    @mysqli_query($conn, "INSERT INTO history (id_user, activity, description) VALUES (NULL, 'Extend Key', '{$note}')");
-                }
-
-                session()->setFlashdata('message', "Extended key '{$user_key}' by {$extra_hours} hours.");
-                session()->setFlashdata('alert-class', 'success');
-            } else {
-                session()->setFlashdata('message', "No key updated. Check if the USER KEY exists.");
-                session()->setFlashdata('alert-class', 'warning');
-            }
-        } else {
-            session()->setFlashdata('message', "Failed to extend key: " . $stmt->error);
-            session()->setFlashdata('alert-class', 'danger');
-        }
-        $stmt->close();
-    }
-}
 
 /* -----------------------------
    Past extensions (read only)
 ------------------------------*/
 $past      = [];
 $pastShape = null;
+$pastRes   = false;
 $colRes    = @mysqli_query($conn, "SHOW COLUMNS FROM history");
 $historyCols = [];
 if ($colRes) {
@@ -127,11 +36,6 @@ if ($pastRes) {
 
 // Connection stays open: the framework owns it.
 
-$flashMsg   = (string) (session()->getFlashdata('message') ?? '');
-$flashClass = (string) (session()->getFlashdata('alert-class') ?? '');
-// Same cleanup the old SweetAlert did — the design has no emoji.
-$flashMsg   = trim(preg_replace('/[\x{2705}\x{274C}\x{26A0}\x{FE0F}]/u', '', $flashMsg));
-$flashKind  = $flashClass === 'success' ? 'good' : ($flashClass === 'warning' ? 'warn' : 'bad');
 ?>
 
 <?= $this->extend('Layout/Starter') ?>
@@ -153,14 +57,7 @@ $flashKind  = $flashClass === 'success' ? 'good' : ($flashClass === 'warning' ? 
     </div>
   </div>
 
-  <?php if ($flashMsg !== ''): ?>
-    <div class="alert alert--<?= esc($flashKind, 'html') ?>" data-flash style="margin-top:var(--s4)">
-      <span><?= esc($flashMsg, 'html') ?></span>
-    </div>
-  <?php endif; ?>
-
-  <?php if ($user->level != 2): ?>
-    <div class="field-row mt-4" data-mt>
+  <div class="field-row mt-4" data-mt>
 
       <div class="card card--glow">
         <div class="card__head">
@@ -193,6 +90,7 @@ $flashKind  = $flashClass === 'success' ? 'good' : ($flashClass === 'warning' ? 
         <?= form_close() ?>
       </div>
 
+      <?php if (in_array((int) $user->level, [1, 2], true)): ?>
       <div class="card">
         <div class="card__head">
           <h3>Extend every key</h3>
@@ -220,9 +118,9 @@ $flashKind  = $flashClass === 'success' ? 'good' : ($flashClass === 'warning' ? 
           </button>
         <?= form_close() ?>
       </div>
+      <?php endif; ?>
 
-    </div>
-  <?php endif; ?>
+  </div>
 
   <div class="table-wrap mt-4" data-mt>
     <div class="card__head" style="padding:var(--s4) var(--s5) 0">

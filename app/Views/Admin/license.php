@@ -16,7 +16,7 @@ $isSet  = $length > 0;
 ?>
 <?= $this->extend('Layout/Starter') ?>
 
-<?= $this->section('title', 'Licence') ?>
+<?= $this->section('title') ?>Licence<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 

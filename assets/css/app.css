@@ -795,6 +795,8 @@ dialog.dlg[open]::backdrop { animation: fade-in var(--d-enter) var(--ease-settle
 .mt-4 { margin-top: var(--s4); }
 .mt-5 { margin-top: var(--s5); }
 .mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: var(--s1); }
+.mb-2 { margin-bottom: var(--s2); }
 .mb-3 { margin-bottom: var(--s3); }
 .mb-4 { margin-bottom: var(--s4); }
 .mb-5 { margin-bottom: var(--s5); }
@@ -876,3 +878,27 @@ dialog.dlg[open]::backdrop { animation: fade-in var(--d-enter) var(--ease-settle
   transition: opacity var(--d-hover) var(--ease-quick);
 }
 .scrim[data-open='true'] { opacity: 1; pointer-events: auto; }
+
+/* ---------- error pages ---------- */
+.error-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--s2);
+  padding: var(--s7) var(--s5);
+}
+.error-page__code {
+  font-family: var(--font-mono);
+  font-size: clamp(4rem, 18vw, 9rem);
+  line-height: .9;
+  font-weight: 500;
+  letter-spacing: -.04em;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--line);
+  margin-bottom: var(--s3);
+}
+.error-page h1 { font-family: var(--font-display); }
+.error-page .page-head__sub { max-width: 34ch; }

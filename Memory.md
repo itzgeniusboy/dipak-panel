@@ -56,3 +56,27 @@
 **Verified:** `php -l` clean; offline render harness (`/data/data/com.termux/files/usr/tmp/opencode/render_keys.php`, outputs in `/data/data/com.termux/files/usr/tmp/keysrender/`) renders 13 variants — full/lean/empty list, both generate pages, edit for owner/reseller/validation-error, plus XSS payloads (escaping verified). Harness workarounds: PHP 8.5 vs CI 4.1.5 `Time::createFromTimestamp()` signature conflict → use `stdClass`; `view()` returns a string (no `->render()`); load helpers for `form_open()`.
 
 **Next:** remaining legacy view folders (Admin/Auth/Server/User) still use old markup; `.mb-1`/`.mb-2` are missing from `app.css` (see Open Questions above).
+
+---
+
+## 2026-10-05 — Hardening pass c688225 (post-7b668fa)
+
+**Deleted (7 loose doc-root scripts):** `file_upload.php`, `public/lib.php`, `delete.php`, `UserMail.php`, `mail.php`, `test.php`, `config.json`. Grep for refs → fixed 4 code hits (`include('UserMail.php')` in `Auth.php:134,276` + `Authold.php:134,276`); **3 view hits left for the Views agent:** `app/Views/Server/lib.php:39,119,128` still point the `.so` upload form at `file_upload.php` (that form is now dead — rebuild it against a real controller or drop it). Root now has only `index.php`.
+
+**Secrets:** restored `vendor/.../Config/DotEnv.php` default `'.env'` (was `/app/Controllers/.env`); moved that file to `./.env` (mode 600, gitignored). Merged the one key `uploads/.env` had and root lacked: `app.sessionMatchIP = true`; deleted `uploads/.env` (it pointed at a *different* database). `CI_ENVIRONMENT = 'production'`. Verified end-to-end by loading `CodeIgniter\Config\DotEnv(ROOTPATH)` — framework picks up the root file, DBDebug false.
+
+**`.htaccess`:** root denies `^\.env(?!\.example$)` and `\.(sql|log|bak|old|orig|ini)$` before the rewrite block (the `!-f` front-controller fallback never protected real files); `.env.example` explicitly allowed last. `app/.htaccess` re-asserted; `app/Controllers/.htaccess` created (blanket deny).
+
+**Filters fail closed:** `AdminFilter` → no markers = `/login`, unknown user = `/login`, level ∉ [1,2] = `dashboard`; `AuthFilter` requires both markers (`and`→`or` bug). Flash keys/targets unchanged. Used `?? null` + explicit `''` checks rather than `empty()` so a `userid` of `0` isn't treated as logged out.
+
+**Keys.php:** private `requireAdminLevel()` (level 1/2) and `requireKeyAccess($dKey)` (admins any key, else own `registrator`). Applied to `delete_all_keys`, `deleteExpired`, `deleteUnused`, `resetAlldevice` + the identical unrouted twins `deleteKeys`/`startDate`/`alterKeys`/`resetAlkeys`. Also fixed `'expired_date ='.null` (invalid SQL, threw) → `where('expired_date', null)`, dropped stray `echo date()` before redirects, and `msgError`→`msgDanger` in `delete_all_keys` (views only render msgDanger/msgSuccess/msgWarning, so msgError was invisible).
+
+**Deliberate deviation:** `resetAllKeys` delete-by-value uses ownership scoping only, NOT `requireAdminLevel()` — `Keys/list.php:299` shows the per-row Delete to *every* role, and `Keys::index` already scopes the list to own keys, so an admin-only gate would have broken reseller self-service delete. Fixes the actual vuln (delete anyone's key) without breaking the UI.
+
+**Connect.php:** `getExpiryData()` → `Database::connect()->query('... user_key = ?', [$uKey])->getRowArray()` (LoginThrottle idiom, `Config\Database` imported); `user_key` rule → `regex_match[/^[^\'"`\\\\;\x00-\x1F]+$/]`. **Escaping trap:** a double-quoted PHP string turned `\\` into an escape char and `\x00` into a raw NUL — use a single-quoted literal (verified with a throwaway harness against 6 real key shapes + 11 payloads). Response shape untouched.
+
+**Pricing:** `price/add`, `price/update` (the "edit" route is `Price::updatePrice`), `price/delete/(:num)` now carry `['filter' => 'admin']`; `price/` GET stays public.
+
+**Verified:** `php -l` clean on all 8 touched PHP files (PHP 8.4.26 via proot debian; paths must be absolute inside the distro). Commit `c688225`, 18 files, only my changes staged — the parallel Views agent's 7 modified view files were left unstaged.
+
+**Still open (reported, not fixed):** `Auth.php:189` interpolates `$usernam` into SQL; password reset still flows token+key through the URL; `verify_pass.php` GET-token path duplicates `Auth::reset_password`; `User::lib()` recurses into itself on POST; `fullname` has no charset rule, so generated keys can embed arbitrary characters; DB password + `TELEGRAM_BOT_TOKEN` still need rotating.

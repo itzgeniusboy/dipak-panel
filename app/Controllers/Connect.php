@@ -19,16 +19,15 @@ class Connect extends BaseController
 
     protected function initializeDatabase()
     {
-        include('conn.php');
-        $this->db = $conn; // Store the connection for reuse
+        // Use the framework's shared, env-configured connection instead of the
+        // loose conn.php, which hardcoded credentials and died with a raw DB error.
+        $this->db = Database::connect();
     }
 
     protected function checkMaintenanceStatus()
     {
-        $sql = "SELECT status FROM onoff WHERE id=1";
-        $result = mysqli_query($this->db, $sql);
-        $status = mysqli_fetch_assoc($result);
-        $this->maintenance = ($status['status'] == 'on');
+        $status = $this->db->table('onoff')->where('id', 1)->get()->getRowArray();
+        $this->maintenance = (($status['status'] ?? 'off') == 'on');
     }
 
     public function index()
@@ -149,13 +148,11 @@ class Connect extends BaseController
         }
 
         if ($isMT) {
-            $sql = "SELECT myinput FROM onoff WHERE id=1";
-            $result = mysqli_query($this->db, $sql);
-            $maintenanceData = mysqli_fetch_assoc($result);
-            
+            $maintenanceData = $this->db->table('onoff')->where('id', 1)->get()->getRowArray();
+
             return $this->response->setJSON([
                 'status' => true,
-                'reason' => $maintenanceData['myinput']
+                'reason' => $maintenanceData['myinput'] ?? ''
             ]);
         }
 
@@ -266,23 +263,17 @@ class Connect extends BaseController
 
     protected function getFeatureData()
     {
-        $sql = "SELECT * FROM Feature WHERE id=1";
-        $result = mysqli_query($this->db, $sql);
-        return mysqli_fetch_assoc($result);
+        return $this->db->table('Feature')->where('id', 1)->get()->getRowArray() ?: [];
     }
 
     protected function getModData()
     {
-        $sql = "SELECT modname FROM modname WHERE id=1";
-        $result = mysqli_query($this->db, $sql);
-        return mysqli_fetch_assoc($result);
+        return $this->db->table('modname')->where('id', 1)->get()->getRowArray() ?: [];
     }
 
     protected function getTextData()
     {
-        $sql = "SELECT * FROM _ftext WHERE id=1";
-        $result = mysqli_query($this->db, $sql);
-        return mysqli_fetch_assoc($result);
+        return $this->db->table('_ftext')->where('id', 1)->get()->getRowArray() ?: [];
     }
 
     protected function getExpiryData($uKey)

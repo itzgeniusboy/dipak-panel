@@ -19,7 +19,7 @@ $levelNames = [1 => 'Owner', 2 => 'Admin', 3 => 'Reseller'];
 ?>
 <?= $this->extend('Layout/Starter') ?>
 
-<?= $this->section('title', 'Approvals') ?>
+<?= $this->section('title') ?>Approvals<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 

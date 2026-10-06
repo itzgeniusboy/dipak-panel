@@ -33,7 +33,7 @@ $levels = [1 => 'Owner', 2 => 'Admin', 3 => 'Reseller'];
 ?>
 <?= $this->extend('Layout/Starter') ?>
 
-<?= $this->section('title', 'Add balance') ?>
+<?= $this->section('title') ?>Add balance<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 

@@ -49,7 +49,7 @@ $isOwner = isset($user) && (int) $user->level === 1;
 ?>
 <?= $this->extend('Layout/Starter') ?>
 
-<?= $this->section('title', 'Users') ?>
+<?= $this->section('title') ?>Users<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 
@@ -57,9 +57,6 @@ $isOwner = isset($user) && (int) $user->level === 1;
   <div class="alert alert--good" data-flash><span><?= esc(session()->getFlashdata('success'), 'html') ?></span></div>
 <?php endif; ?>
 
-<?php if (session()->getFlashdata('error')): ?>
-  <div class="alert alert--bad" data-flash><span><?= esc(session()->getFlashdata('error'), 'html') ?></span></div>
-<?php endif; ?>
 
 <div class="page-head" data-mt>
   <div>

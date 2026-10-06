@@ -131,7 +131,7 @@ class User extends BaseController
     {
         // Only allow owners/admins to change this setting
         if (!in_array((int)$this->user->level, [1,2], true)) {
-            return redirect()->back()->with('error', 'Permission denied');
+            return redirect()->back()->with('msgDanger', 'Permission denied');
         }
 
         $rules = [
@@ -139,13 +139,13 @@ class User extends BaseController
         ];
 
         if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->back()->withInput()->with('msgDanger', implode(' ', $this->validator->getErrors()));
         }
 
         $newName = $this->request->getPost('base_name');
         $this->updateBaseNameConstant($newName);
 
-        return redirect()->to('/settingsx')->with('message', 'Site name updated successfully!');
+        return redirect()->to('/settingsx')->with('msgSuccess', 'Site name updated successfully!');
     }
 
     private function updateBaseNameConstant($newName)
@@ -170,36 +170,136 @@ class User extends BaseController
 
     public function ExtendDuration()
     {
-        $user  = $this->user;
-        if ($user->level == 1)
-        {
-            if ($this->request->getPost('ExtendDuration_form'))
-                return $this->ExtendDuration();
+        // Both forms used to be handled inside the view with raw $_POST. Moved
+        // here so CSRF, level and ownership checks actually apply.
+        if ($this->request->getPost('extend_keys_form')) {
+            return $this->extendAllKeys();
         }
-        $user = $this->user;
+
+        if ($this->request->getPost('extend_single_form')) {
+            return $this->extendOneKey();
+        }
+
         $validation = Services::validation();
         $data = [
             'title'      => 'ExtendDuration',
-            'user'       => $user,
+            'user'       => $this->user,
             'time'       => $this->time,
             'validation' => $validation
         ];
         return view('Server/ExtendDuration', $data);
     }
 
+    /**
+     * "Extend all keys" is a global write across every account. Admins only.
+     */
+    private function extendAllKeys(): \Closure
+    {
+        if (! in_array((int) ($this->user->level ?? 3), [1, 2], true)) {
+            return redirect()->to('ExtendDuration')->with('msgWarning', 'Access Denied!');
+        }
+
+        $extra = $this->parseExtendDuration((string) $this->request->getPost('duration'));
+        if ($extra === null) {
+            return redirect()->to('ExtendDuration')->with('msgDanger', 'Invalid duration format. Use e.g. 30D or 5H');
+        }
+
+        [$extraHours, $label] = $extra;
+
+        $db = \Config\Database::connect();
+        $db->table('keys_code')->set('duration', 'duration + ' . $extraHours, false)->update();
+
+        $this->recordExtendHistory(null, 'Extended all keys by ' . $label, 'admin');
+
+        return redirect()->to('ExtendDuration')->with('msgSuccess', 'All keys extended by ' . $label . '!');
+    }
+
+    /**
+     * Extending one key: admins any key, everyone else only their own.
+     */
+    private function extendOneKey(): \Closure
+    {
+        $userKey  = trim((string) $this->request->getPost('user_key'));
+        $duration = (string) $this->request->getPost('duration');
+
+        if ($userKey === '') {
+            return redirect()->to('ExtendDuration')->with('msgDanger', 'Please enter a User Key.');
+        }
+
+        $extra = $this->parseExtendDuration($duration);
+        if ($extra === null) {
+            return redirect()->to('ExtendDuration')->with('msgDanger', 'Invalid duration format. Use e.g. 30D or 5H');
+        }
+
+        [$extraHours, $label] = $extra;
+
+        $db  = \Config\Database::connect();
+        $row = $db->table('keys_code')->where('user_key', $userKey)->get()->getRowArray();
+
+        if (! $row) {
+            return redirect()->to('ExtendDuration')->with('msgWarning', 'No key updated. Check if the User Key exists.');
+        }
+
+        $isAdmin = in_array((int) ($this->user->level ?? 3), [1, 2], true);
+        if (! $isAdmin && (string) ($row['registrator'] ?? '') !== (string) $this->userid) {
+            return redirect()->to('ExtendDuration')->with('msgWarning', 'Access Denied!');
+        }
+
+        $db->table('keys_code')
+            ->where('user_key', $userKey)
+            ->set('duration', 'duration + ' . $extraHours, false)
+            ->update();
+
+        $this->recordExtendHistory($row['id_keys'] ?? null, 'Extended key ' . $label, 'panel');
+
+        return redirect()->to('ExtendDuration')->with('msgSuccess', 'Extended key ' . $userKey . ' by ' . $label . '.');
+    }
+
+    /**
+     * "30D" / "5H" -> [hours, "30D"]. Null when the format is wrong.
+     */
+    private function parseExtendDuration(string $input): ?array
+    {
+        $input = trim($input);
+
+        if (! preg_match('/^(\d+)([HD])$/i', $input, $m)) {
+            return null;
+        }
+
+        $amount = (int) $m[1];
+        $hours  = strtoupper($m[2]) === 'H' ? $amount : $amount * 24;
+
+        return [$hours, strtoupper($m[1] . $m[2])];
+    }
+
+    /**
+     * The project has two conflicting history schemas, so write to whichever
+     * one this install actually has instead of guessing and failing silently.
+     */
+    private function recordExtendHistory($keysId, string $note, string $actor): void
+    {
+        $db     = \Config\Database::connect();
+        $fields = $db->getFieldNames('history');
+
+        if (in_array('info', $fields, true) && in_array('user_do', $fields, true)) {
+            $db->table('history')->insert(['keys_id' => $keysId, 'user_do' => $actor, 'info' => $note]);
+
+            return;
+        }
+
+        if (in_array('description', $fields, true) && in_array('activity', $fields, true)) {
+            $db->table('history')->insert(['id_user' => $keysId, 'activity' => 'Extend Key', 'description' => $note]);
+        }
+    }
+
     public function settingsx()
     {
-        $user  = $this->user;
-        if ($user->level == 1)
-        {
-            if ($this->request->getPost('settingsx_form'))
-                return $this->ExtendDuration();
-        }
-        $user = $this->user;
+        // The old body sent settingsx_form to ExtendDuration(), a copy-paste
+        // bug. This screen posts base_name to User::updateSiteName().
         $validation = Services::validation();
         $data = [
             'title'      => 'settingsx',
-            'user'       => $user,
+            'user'       => $this->user,
             'time'       => $this->time,
             'validation' => $validation
         ];
@@ -585,14 +685,12 @@ class User extends BaseController
 
     public function lib()
     {
-        $user  = $this->user;
-        if ($this->request->getPost('lib_form'))
-           return $this->lib();
-        $user = $this->user;
+        // The old body did: if ($this->request->getPost('lib_form')) return $this->lib();
+        // That is unbounded recursion. Uploads now go through libUpload().
         $validation = Services::validation();
         $data = [
             'title'      => 'lib',
-            'user'       => $user,
+            'user'       => $this->user,
             'time'       => $this->time,
             'validation' => $validation
         ];
@@ -1154,4 +1252,68 @@ protected function owner_can_delete_owner($acting, $target): bool
     }
     return true;
   }
+
+    /**
+     * Replaces the single published library file.
+     *
+     * Replaces the loose file_upload.php script, which allowed any extension to
+     * be written into the document root and interpolated its filename straight
+     * into SQL. Everything here is bound and the extension is an allowlist.
+     */
+    public function libUpload()
+    {
+        if (! in_array((int) ($this->user->level ?? 3), [1, 2], true)) {
+            return redirect()->to('dashboard')->with('msgWarning', 'Access Denied!');
+        }
+
+        $allowed = ['so'];
+        $maxSize = 10097152; // 10 MB, same ceiling the old script enforced
+
+        $file = $this->request->getFile('libfile');
+
+        if ($file === null || ! $file->isValid() || $file->getError() !== UPLOAD_ERR_OK) {
+            return redirect()->to('lib')->with('msgDanger', 'Choose a file to upload.');
+        }
+
+        if ($file->getSize() > $maxSize) {
+            return redirect()->to('lib')->with('msgDanger', 'File size must be less than ' . round($maxSize / 1048576, 2) . ' MB');
+        }
+
+        // Keep only the basename, then force the allowlist. Nothing derived from
+        // the client's filename reaches the filesystem without passing this.
+        $name = basename((string) $file->getClientName());
+        $ext  = strtolower((string) pathinfo($name, PATHINFO_EXTENSION));
+
+        if (! in_array($ext, $allowed, true) || ! preg_match('/^[A-Za-z0-9._-]+\.so$/', $name)) {
+            return redirect()->to('lib')->with('msgDanger', 'Extension not allowed, please choose a .so file.');
+        }
+
+        $dir = FCPATH . 'ONLINELIB';
+        if (! is_dir($dir) && ! mkdir($dir, 0755, true) && ! is_dir($dir)) {
+            return redirect()->to('lib')->with('msgDanger', 'Upload directory is not writable.');
+        }
+
+        if (! $file->move($dir, $name, true)) {
+            return redirect()->to('lib')->with('msgDanger', 'Upload failed, nothing was saved.');
+        }
+
+        $path   = 'ONLINELIB/' . $name;
+        $link   = base_url($path);
+        $size   = round($file->getSize() / 1048576, 2) . ' MB';
+        $stamp  = time();
+
+        $db = \Config\Database::connect();
+        $db->table('lib')
+            ->where('id', 1)
+            ->update([
+                'name'          => $name,
+                'path'          => $path,
+                'size'          => $size,
+                'link'          => $link,
+                'last_modified' => $stamp,
+                'token'         => null,
+            ]);
+
+        return redirect()->to('lib')->with('msgSuccess', 'Library published as ' . $name . '.');
+    }
 }

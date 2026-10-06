@@ -59,7 +59,7 @@ if ($result4) {
 }
 // Connection stays open: the framework owns it.
 
-$baseUrl = (string) config_item('app.baseURL');
+$baseUrl = (string) site_url();
 $host    = parse_url($baseUrl, PHP_URL_HOST);
 $host    = is_string($host) && $host !== '' ? $host : $baseUrl;
 

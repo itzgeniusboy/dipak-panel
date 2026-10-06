@@ -46,7 +46,7 @@ $meterClass  = ($maxd > 0 && $used >= $maxd) ? 'meter--bad' : 'meter--good';
 $deviceRows = max(3, ($used > $maxd) ? 3 : $used);
 $hasErrors  = false;
 if (isset($validation)) {
-    $errs = $validation->getErrors();
+    $errs = method_exists($validation, 'getErrors') ? $validation->getErrors() : (method_exists($validation, 'errors') ? $validation->errors() : []);
     $hasErrors = is_array($errs) && count($errs) > 0;
 }
 
@@ -114,7 +114,8 @@ $devices = $used ? $deviceList : '';
       <h3>Edit</h3>
       <div class="spacer"></div>
       <?php if ($hasErrors): ?>
-        <span class="chip chip--warn"><?= esc(count($validation->getErrors()), 'html') ?> <?= count($validation->getErrors()) === 1 ? 'field' : 'fields' ?> to fix</span>
+        <?php $errCount = count($errs ?? []); ?>
+        <span class="chip chip--warn"><?= esc($errCount, 'html') ?> <?= $errCount === 1 ? 'field' : 'fields' ?> to fix</span>
       <?else: ?>
         <span class="chip"><?= $mayEdit ? 'full access' : 'status only' ?></span>
       <?php endif; ?>

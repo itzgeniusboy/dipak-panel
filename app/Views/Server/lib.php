@@ -4,25 +4,12 @@
 $db   = \Config\Database::connect();
 $conn = $db->getConnection();
 
-$sql21 = "SELECT * FROM lib WHERE id='1'";
-$result21 = mysqli_query($conn, $sql21);
-$userDetails21 = mysqli_fetch_assoc($result21);
-
-// One-shot upload token: the legacy upload endpoint only accepts a request whose
-// token matches the row, and clears it afterwards.
-if (! function_exists('generateRandomString')) {
-    function generateRandomString($length = 7)
-    {
-        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        $randomString = '';
-        for ($i = 0; $i < $length; $i++) {
-            $randomString .= $characters[rand(0, strlen($characters) - 1)];
-        }
-        return $randomString;
-    }
+$userDetails21 = null;
+$result21      = @mysqli_query($conn, "SELECT * FROM lib WHERE id='1'");
+if ($result21 !== false) {
+    $userDetails21 = mysqli_fetch_assoc($result21);
 }
-$token = md5(generateRandomString()) . rand(10, 999);
-mysqli_query($conn, "UPDATE lib SET token = '$token' WHERE id = 1");
+$userDetails21 = $userDetails21 ?: [];
 
 date_default_timezone_set('Asia/Kolkata');
 
@@ -34,9 +21,9 @@ $name = isset($userDetails21['name']) ? (string) $userDetails21['name'] : '';
 $size = isset($userDetails21['size']) ? (string) $userDetails21['size'] : '';
 $path = isset($userDetails21['path']) ? (string) $userDetails21['path'] : '';
 $link = isset($userDetails21['link']) ? (string) $userDetails21['link'] : '';
-// Connection stays open: the framework owns it.
 
-// What file_upload.php will accept. Nothing else gets through it.
+// Upload is handled by User::libUpload, which enforces this allowlist server side.
+// The form below only mirrors it so a wrong file never costs a round trip.
 $accepted = ['so'];
 $maxBytes = 10097152;
 $maxMb    = round($maxBytes / 1024 / 1024, 2);
@@ -116,16 +103,15 @@ $maxMb    = round($maxBytes / 1024 / 1024, 2);
       <span class="eyebrow"><?= esc(implode(', ', array_map(function ($e) { return '.' . $e; }, $accepted)), 'html') ?> only</span>
     </div>
 
-    <?= form_open('file_upload.php') ?>
+    <?= form_open('lib/upload') ?>
       <div class="field">
         <label class="label" for="libfile">Library file</label>
         <input class="input" type="file" name="libfile" id="libfile"
                accept=".so" data-lib-input data-lib-max="<?= esc((string) $maxBytes, 'html') ?>" required>
-        <input type="hidden" name="token" value="<?= esc($token, 'html') ?>">
         <div class="hint">
           Accepted extensions: <span class="mono">.so</span> — nothing else is written to
           <span class="mono">ONLINELIB/</span>. Maximum <?= esc((string) $maxMb, 'html') ?> MB.
-          The check is enforced server-side by <span class="mono">file_upload.php</span>, this form only mirrors it.
+          The check is enforced server-side by <span class="mono">User::libUpload</span>, this form only mirrors it.
         </div>
       </div>
 
@@ -133,7 +119,7 @@ $maxMb    = round($maxBytes / 1024 / 1024, 2);
     <?= form_close() ?>
 
     <div class="hint mt-4">
-      Panel time <?= esc($current, 'html') ?> · a new token is minted on every load and burnt by the first upload.
+      Panel time <?= esc($current, 'html') ?> · uploading replaces the file every client downloads.
     </div>
   </div>
 

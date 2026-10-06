@@ -6,7 +6,7 @@
 	"license": "MIT",
 	"require": {
 		"php": "^7.3||^8.0",
-		"codeigniter4/framework": "^4",
+		"codeigniter4/framework": "^4.6",
 		"hermawan/codeigniter4-datatables": "^0.5.2"
 	},
 	"require-dev": {

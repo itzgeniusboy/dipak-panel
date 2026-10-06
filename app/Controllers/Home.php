@@ -2,18 +2,18 @@
 
 namespace App\Controllers;
 
-use App\Models\Server;
-use App\Models\Status;
-use App\Models\Feature;
-use CodeIgniter\Controller;
-
-
-
+/**
+ * Landing controller.
+ *
+ * Home::index used to echo view('New'), and app/Views/New.php does not exist in
+ * this project, so every request to "/" and "/New" was a fatal error. "/" now
+ * resolves through Routes.php setDefaultRoute('dashboard'), and this action
+ * redirects rather than rendering a view that is not there.
+ */
 class Home extends BaseController
 {
-
-	public function index()
-	{
-	    echo view('New');
-	}
+    public function index()
+    {
+        return redirect()->to('dashboard');
+    }
 }

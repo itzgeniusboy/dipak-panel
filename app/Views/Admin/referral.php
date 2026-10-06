@@ -32,7 +32,7 @@ foreach ($rows as $c) {
 ?>
 <?= $this->extend('Layout/Starter') ?>
 
-<?= $this->section('title', 'Referral') ?>
+<?= $this->section('title') ?>Referral<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 
