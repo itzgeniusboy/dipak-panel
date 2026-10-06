@@ -94,8 +94,16 @@ class KeyFactory
         if ($drtn < 1) {
             return self::fail("Duration must be at least 1 hour.");
         }
+
+        // Spoken durations rarely match the panel's plans exactly ("2 days" =
+        // 48h, but only 24h/72h are sold). Snap to the closest real plan, so a
+        // voice order never fails on an off-menu duration.
+        $asked = $drtn;
         if (! isset($prices[$drtn])) {
-            return self::fail("No price is configured for {$drtn}h.");
+            $drtn = self::nearest($prices, $drtn);
+            if ($drtn < 1) {
+                return self::fail("No plans are configured yet.");
+            }
         }
 
         $fees  = $prices[$drtn] * $maxd;
@@ -133,14 +141,31 @@ class KeyFactory
         ]);
 
         $chargeNote = $unlimited ? 'owner — unlimited, nothing charged' : "{$fees} charged";
+        $swapNote   = ($asked > 0 && $asked !== $drtn) ? " (closest to the {$asked}h you asked for)" : '';
 
         return [
             'ok'      => true,
             'code'    => 201,
-            'message' => "Key generated — {$license} ({$drtn}h, {$maxd} device" . ($maxd > 1 ? 's' : '') . "), {$chargeNote}.",
+            'message' => "Key generated — {$license} ({$drtn}h, {$maxd} device" . ($maxd > 1 ? 's' : '') . "){$swapNote}, {$chargeNote}.",
             'key'     => $license,
             'fees'    => $unlimited ? 0 : $fees,
         ];
+    }
+
+    /** Closest sold duration; ties go to the longer plan. */
+    private static function nearest(array $prices, int $want): int
+    {
+        $best = 0;
+        $bestDiff = PHP_INT_MAX;
+        foreach (array_keys($prices) as $h) {
+            $diff = abs($h - $want);
+            if ($diff < $bestDiff || ($diff === $bestDiff && $h > $best)) {
+                $best = (int) $h;
+                $bestDiff = $diff;
+            }
+        }
+
+        return $best;
     }
 
     private static function fail(string $message, int $code = 400): array
