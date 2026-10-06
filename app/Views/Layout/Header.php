@@ -5,8 +5,8 @@
   <a class="nav__item" href="<?= site_url('keys/generate-random') ?>" data-nav data-circuit="nav:generate"><span class="nav__icon">+</span> Generate random</a>
   <a class="nav__item" href="<?= site_url('keys/generate') ?>" data-nav data-circuit="nav:generate"><span class="nav__icon">✎</span> Generate custom</a>
 
-  <div class="nav__label">Assistant</div>
-  <a class="nav__item" href="<?= site_url('assistant') ?>" data-nav data-circuit="nav:assistant"><span class="nav__icon">◐</span> Circuit &amp; API keys</a>
+  <div class="nav__label">Circuit</div>
+  <a class="nav__item" href="<?= site_url('assistant') ?>" data-nav data-circuit="nav:assistant"><span class="nav__icon">◐</span> Circuit</a>
 
   <div class="nav__label">Account</div>
   <a class="nav__item" href="<?= site_url('balance') ?>" data-nav data-circuit="nav:balance"><span class="nav__icon">◈</span> Balance</a>

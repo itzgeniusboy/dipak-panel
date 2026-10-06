@@ -56,7 +56,6 @@
     document.querySelectorAll('[data-sound-toggle]').forEach(function (b) {
       b.setAttribute('aria-pressed', isOff ? 'false' : 'true');
       b.setAttribute('title', isOff ? 'Sound off' : 'Sound on');
-      b.textContent = isOff ? '🔇' : '🔊';
     });
   }
 

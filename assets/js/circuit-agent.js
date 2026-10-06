@@ -194,6 +194,21 @@
     }
   }
 
+  /* A single hello per session, so Circuit feels alive the moment you arrive. */
+  function greet() {
+    var seen = null;
+    try { seen = sessionStorage.getItem('circuit.greeted'); } catch (e) {}
+    if (seen) return;
+    try { sessionStorage.setItem('circuit.greeted', '1'); } catch (e) {}
+    if (busy) return;
+    var pending = null;
+    try { pending = sessionStorage.getItem(RESUME); } catch (e) {}
+    if (pending) return;
+    setTimeout(function () {
+      if (!busy) say("Hi, I'm Circuit — tap the mic and tell me what you need.", 1600);
+    }, 700);
+  }
+
   /* ── the command endpoint ──────────────────────────────────────────── */
 
   function command(text) {
@@ -286,6 +301,7 @@
 
     initVoice();
     resume();
+    greet();
   }
 
   window.Circuit = {

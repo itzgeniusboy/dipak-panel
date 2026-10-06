@@ -920,3 +920,22 @@ dialog.dlg[open]::backdrop { animation: fade-in var(--d-enter) var(--ease-settle
 }
 .error-page h1 { font-family: var(--font-display); }
 .error-page .page-head__sub { max-width: 34ch; }
+
+/* ---------------------------------------------------------------------------
+   Inline SVG icons — keep the chrome consistent and emoji-free.
+   --------------------------------------------------------------------------- */
+.ico {
+  width: 1.15em;
+  height: 1.15em;
+  display: block;
+  flex: none;
+}
+.btn .ico { width: 18px; height: 18px; }
+
+/* Header buttons are icon-only: centre the glyph. */
+.btn--icon { padding-inline: var(--s3); }
+
+/* Sound toggle shows one speaker at a time. */
+[data-sound-toggle] .ico--sound-off { display: none; }
+[data-sound-toggle][aria-pressed="false"] .ico--sound-on { display: none; }
+[data-sound-toggle][aria-pressed="false"] .ico--sound-off { display: block; }

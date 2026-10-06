@@ -33,7 +33,9 @@
 
   <header class="shell__top">
     <button class="btn btn--ghost btn--sm" data-drawer-open aria-expanded="false" aria-label="Menu"
-            style="display:none" data-drawer-btn>☰</button>
+            style="display:none" data-drawer-btn>
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
 
     <a class="brand" href="<?= site_url('dashboard') ?>">
       <span class="brand__mark">D</span>
@@ -44,8 +46,19 @@
 
     <div class="row gap-2">
       <span class="chip chip--accent nowrap"><?= esc(session('username') ?? 'user', 'html') ?></span>
-      <button class="btn btn--ghost btn--sm" type="button" data-circuit-mic aria-pressed="false" title="Talk to Circuit">🎙</button>
-      <button class="btn btn--ghost btn--sm" type="button" data-sound-toggle aria-pressed="true" title="Sound on">🔊</button>
+      <button class="btn btn--ghost btn--sm" type="button" data-circuit-mic aria-pressed="false" title="Talk to Circuit">
+        <svg class="ico ico--mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/>
+        </svg>
+      </button>
+      <button class="btn btn--ghost btn--sm" type="button" data-sound-toggle aria-pressed="true" title="Sound on">
+        <svg class="ico ico--sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>
+        </svg>
+        <svg class="ico ico--sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/>
+        </svg>
+      </button>
       <a class="btn btn--ghost btn--sm" href="<?= site_url('logout') ?>">Sign out</a>
     </div>
   </header>
@@ -74,7 +87,9 @@
 
 <div class="agent" data-agent>
   <div class="agent__say" data-agent-say hidden>
-    <button class="agent__close" type="button" data-agent-close aria-label="Hide Circuit">✕</button>
+    <button class="agent__close" type="button" data-agent-close aria-label="Hide Circuit">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
     <p class="agent__text" data-agent-text></p>
   </div>
   <button class="agent__body" type="button" data-agent-body data-press aria-label="Talk to Circuit">
