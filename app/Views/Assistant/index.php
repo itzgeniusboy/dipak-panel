@@ -45,6 +45,45 @@
       </div>
     <?php endif; ?>
 
+    <?php if (! empty($canAi)): ?>
+      <div class="card">
+        <div class="card__head">
+          <h3>AI brain (Gemini)</h3>
+          <span class="spacer"></span>
+          <?php if (! empty($gemini)): ?>
+            <span class="chip chip--accent">configured</span>
+          <?php else: ?>
+            <span class="chip">not set</span>
+          <?php endif; ?>
+        </div>
+        <p class="hint">
+          Optional. With a key, Circuit understands free-form talk; without one it uses the
+          built-in rules. The key is stored server-side and never shown again.
+        </p>
+        <?= form_open('assistant/ai') ?>
+          <div class="field-row">
+            <div class="field">
+              <label class="label" for="gemini_key">Gemini API key</label>
+              <input class="input" id="gemini_key" name="gemini_key" type="password" autocomplete="off"
+                     placeholder="<?= $aiKeyHint !== '' ? esc($aiKeyHint, 'attr') . ' (leave blank to keep)' : 'paste your key' ?>">
+            </div>
+            <div class="field">
+              <label class="label" for="gemini_model">Model</label>
+              <input class="input" id="gemini_model" name="gemini_model" maxlength="64"
+                     value="<?= esc($aiModel, 'attr') ?>" placeholder="gemini-2.0-flash">
+            </div>
+          </div>
+          <div class="row gap-2 row--wrap" style="margin-top:var(--s3)">
+            <button class="btn btn--primary" type="submit" name="action" value="save" data-press>Save AI key</button>
+            <?php if (! empty($gemini)): ?>
+              <button class="btn btn--ghost" type="submit" name="action" value="clear" formnovalidate
+                      data-confirm="Remove the Gemini key? Circuit falls back to the built-in rules.">Remove</button>
+            <?php endif; ?>
+          </div>
+        <?= form_close() ?>
+      </div>
+    <?php endif; ?>
+
     <div class="card">
       <div class="card__head">
         <h3>Create a key</h3>

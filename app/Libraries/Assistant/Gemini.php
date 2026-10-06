@@ -18,7 +18,41 @@ class Gemini
 {
     public static function enabled(): bool
     {
-        return trim((string) env('gemini.apiKey', '')) !== '';
+        return self::apiKey() !== '';
+    }
+
+    /**
+     * The key lives server-side only: set from the assistant page (stored in
+     * the `assistant_config` table) or, as a fallback, from `.env`. It is never
+     * sent to the browser.
+     */
+    public static function apiKey(): string
+    {
+        $key = self::setting('gemini.apiKey');
+        if ($key === '') {
+            $key = trim((string) env('gemini.apiKey', ''));
+        }
+
+        return trim($key);
+    }
+
+    public static function model(): string
+    {
+        $model = self::setting('gemini.model');
+        if ($model === '') {
+            $model = trim((string) env('gemini.model', ''));
+        }
+
+        return $model !== '' ? $model : 'gemini-2.0-flash';
+    }
+
+    private static function setting(string $name): string
+    {
+        try {
+            return (string) (new \App\Models\AssistantConfigModel())->get($name, '');
+        } catch (\Throwable $e) {
+            return '';
+        }
     }
 
     /**
@@ -42,9 +76,8 @@ class Gemini
 
         try {
             $client   = Services::curlrequest(['timeout' => 12, 'http_errors' => false]);
-            $model    = trim((string) env('gemini.model', 'gemini-2.0-flash')) ?: 'gemini-2.0-flash';
             $endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/'
-                . rawurlencode($model) . ':generateContent?key=' . rawurlencode((string) env('gemini.apiKey'));
+                . rawurlencode(self::model()) . ':generateContent?key=' . rawurlencode(self::apiKey());
 
             $res    = $client->post($endpoint, ['json' => $payload]);
             $status = $res->getStatusCode();

@@ -151,3 +151,5 @@
 **Verified:** `php -l` clean; `parse()` unit table (int casting, fenced JSON tolerance, unknown action → null, `account.password` → null, extra `password` param dropped); live `/assistant/command` with no key and with a **fake** key — both fall back, correct action, no 500; Assistant page chip renders "Rules". Also fixed a duplicate `Actions::run()` call in `Assistant::command()`.
 
 **To enable:** put your Gemini key on the `gemini.apiKey` line of `.env` (blank = built-in rules).
+
+**Update — key can now be set from the UI:** `AssistantConfigModel` (`assistant_config`, key/value, self-provisioning; also appended to the host `schema.sql`). The Assistant page gets an **AI brain (Gemini)** card (admin/level 1–2 only, `POST assistant/ai`): paste key + model, Save / Remove. Stored server-side, shown only as `••••••1234` (never sent back); `Gemini::apiKey()`/`model()` read DB first, then `.env` fallback. Controller method `Assistant::ai()`.

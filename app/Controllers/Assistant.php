@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Libraries\Assistant\Actions;
 use App\Libraries\Assistant\CommandRouter;
 use App\Libraries\Assistant\Gemini;
+use App\Models\AssistantConfigModel;
 use App\Models\AssistantKeysModel;
 use App\Models\UserModel;
 
@@ -32,6 +33,7 @@ class Assistant extends BaseController
     {
         $model = new AssistantKeysModel();
         $model->ensureSchema();
+        (new AssistantConfigModel())->ensureSchema();
 
         return view('Assistant/index', [
             'title' => 'Circuit assistant',
@@ -42,7 +44,44 @@ class Assistant extends BaseController
             'actions' => Actions::list(),
             'pages' => Actions::PAGES,
             'gemini' => Gemini::enabled(),
+            'canAi' => in_array((int) $this->user->level, [1, 2], true),
+            'aiModel' => Gemini::model(),
+            'aiKeyHint' => Gemini::apiKey() !== '' ? str_repeat('•', 6) . substr(Gemini::apiKey(), -4) : '',
         ]);
+    }
+
+    public function ai()
+    {
+        if (! $this->request->is('post')) {
+            return redirect()->to('assistant');
+        }
+        if (! in_array((int) $this->user->level, [1, 2], true)) {
+            return redirect()->to('assistant')->with('msgDanger', 'Only an admin can change the AI settings.');
+        }
+
+        $model = new AssistantConfigModel();
+        $model->ensureSchema();
+        $action = (string) ($this->request->getPost('action') ?? 'save');
+
+        if ($action === 'clear') {
+            $model->put('gemini.apiKey', '');
+
+            return redirect()->to('assistant')->with('msgSuccess', 'Gemini key removed — Circuit now uses the built-in rules.');
+        }
+
+        $key  = trim((string) ($this->request->getPost('gemini_key') ?? ''));
+        $name = trim((string) ($this->request->getPost('gemini_model') ?? ''));
+
+        if ($key !== '') {
+            $model->put('gemini.apiKey', $key);
+        }
+        if ($name !== '') {
+            $model->put('gemini.model', $name);
+        }
+
+        $what = $key !== '' ? 'Gemini key saved.' : 'AI settings saved.';
+
+        return redirect()->to('assistant')->with('msgSuccess', $what);
     }
 
     public function create()

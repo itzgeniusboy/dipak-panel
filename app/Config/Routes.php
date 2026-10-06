@@ -108,6 +108,7 @@ $routes->match(['GET', 'POST'], 'connect', 'Connect::index');
 /* ------------------------- Circuit assistant ------------------------- */
 $routes->match(['GET', 'POST'], 'assistant', 'Assistant::index');
 $routes->post('assistant/create', 'Assistant::create');
+$routes->post('assistant/ai', 'Assistant::ai');
 $routes->post('assistant/revoke/(:num)', 'Assistant::revoke/$1');
 $routes->post('assistant/command', 'Assistant::command');
 
