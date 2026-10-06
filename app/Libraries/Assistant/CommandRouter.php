@@ -79,6 +79,23 @@ class CommandRouter
             if (preg_match('/\b(licen[cs]e|licen[cs]es)\b/', $t)) {
                 return ['action' => 'navigate', 'params' => ['page' => 'license'], 'confidence' => 80];
             }
+            // Spoken names that do not match a page slug word-for-word.
+            $alias = [
+                'online system' => 'server',
+                'system'        => 'server',
+                'online lib'    => 'lib',
+                'two[- ]?factor' => 'twofa',
+                '2fa'           => 'twofa',
+                'approvals?'    => 'approvals',
+                'manage users'  => 'users',
+                'referrals?'    => 'referral',
+                'extend duration' => 'extend',
+            ];
+            foreach ($alias as $words => $slug) {
+                if (preg_match('/\b' . $words . '\b/', $t)) {
+                    return ['action' => 'navigate', 'params' => ['page' => $slug], 'confidence' => 80];
+                }
+            }
             foreach (Actions::PAGES as $slug => $path) {
                 if (preg_match('/\b' . preg_quote($slug, '/') . '\b/', $t)) {
                     return ['action' => 'navigate', 'params' => ['page' => $slug], 'confidence' => 80];

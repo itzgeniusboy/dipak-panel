@@ -37,6 +37,12 @@ class Actions
         'settings'  => 'settings',
         'assistant' => 'assistant',
         'server'    => 'Server',
+        'lib'       => 'lib',
+        'extend'    => 'ExtendDuration',
+        'twofa'     => 'twofa',
+        'approvals' => 'account_approve',
+        'users'     => 'admin/manage-users',
+        'referral'  => 'admin/create-referral',
     ];
 
     /** @return array<string,array{label:string,write:bool,params:array<string,string>}> */

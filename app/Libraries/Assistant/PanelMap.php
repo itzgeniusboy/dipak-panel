@@ -23,6 +23,13 @@ class PanelMap
         'price'     => ['price', 'nav:price'],
         'settings'  => ['settings', 'nav:settings'],
         'assistant' => ['assistant', 'nav:assistant'],
+        'server'    => ['Server', ''],
+        'lib'       => ['lib', ''],
+        'extend'    => ['ExtendDuration', ''],
+        'twofa'     => ['twofa', ''],
+        'approvals' => ['account_approve', ''],
+        'users'     => ['admin/manage-users', ''],
+        'referral'  => ['admin/create-referral', ''],
     ];
 
     /**
@@ -130,7 +137,7 @@ class PanelMap
         return [
             'type'   => 'goto',
             'url'    => site_url($path),
-            'target' => '[data-circuit="' . $nav . '"]',
+            'target' => $nav !== '' ? '[data-circuit="' . $nav . '"]' : null,
             'speak'  => $speak,
         ];
     }
