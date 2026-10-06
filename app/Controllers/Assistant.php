@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Libraries\Assistant\Actions;
 use App\Libraries\Assistant\CommandRouter;
 use App\Libraries\Assistant\Gemini;
+use App\Libraries\Assistant\PanelMap;
 use App\Models\AssistantConfigModel;
 use App\Models\AssistantKeysModel;
 use App\Models\UserModel;
@@ -121,11 +122,14 @@ class Assistant extends BaseController
         $body = $this->request->getJSON(true) ?: [];
         $text = trim((string) ($body['text'] ?? ''));
 
+        log_message('info', 'Circuit command from user {id}: {text}', ['id' => $this->userId, 'text' => $text]);
+
         if ($text === '') {
             return $this->json(['ok' => false, 'speak' => 'I did not hear anything.', 'plan' => []]);
         }
 
         $route = Gemini::interpret($text, $this->user, $this->userId) ?? CommandRouter::route($text);
+        log_message('info', 'Circuit route: ' . $route['action'] . ' via ' . ($route['via'] ?? 'rules'));
 
         if ($route['action'] === '_reply') {
             return $this->json([
@@ -134,6 +138,20 @@ class Assistant extends BaseController
                 'speak' => $route['reply'],
                 'plan'  => [['type' => 'say', 'text' => $route['reply']]],
                 'toast' => ['kind' => 'info', 'msg' => $route['reply']],
+            ]);
+        }
+
+        // Prefer driving the real UI: Circuit clicks the panel's own buttons
+        // and fills its own forms, exactly like a person would.
+        $uiPlan = PanelMap::plan($route['action'], $route['params'], $this->user);
+        if ($uiPlan !== null) {
+            return $this->json([
+                'ok'     => true,
+                'via'    => $route['via'] ?? 'rules',
+                'action' => $route['action'],
+                'speak'  => 'On it.',
+                'plan'   => $uiPlan,
+                'toast'  => ['kind' => 'info', 'msg' => 'Circuit is doing it on screen.'],
             ]);
         }
 

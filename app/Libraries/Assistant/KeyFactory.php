@@ -152,6 +152,26 @@ class KeyFactory
         ];
     }
 
+    /**
+     * Public snap for callers that only need the plan: nearest sold duration
+     * to a spoken one, in hours. 0 when no plans exist.
+     */
+    public static function nearestPlan(int $hours): int
+    {
+        $prices = self::priceMap();
+        if (! $prices) {
+            return 0;
+        }
+        if ($hours <= 0) {
+            return (int) array_key_first($prices);
+        }
+        if (isset($prices[$hours])) {
+            return $hours;
+        }
+
+        return self::nearest($prices, $hours);
+    }
+
     /** Closest sold duration; ties go to the longer plan. */
     private static function nearest(array $prices, int $want): int
     {

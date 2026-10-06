@@ -152,36 +152,163 @@
 
   /* ── plans ─────────────────────────────────────────────────────────── */
 
+  /* Fire a real DOM event so framework listeners and validation react as if a
+   * person typed or toggled the control. */
+  function fire(el, type) {
+    if (!el) return;
+    try {
+      var ev = document.createEvent('Event');
+      ev.initEvent(type, true, true);
+      el.dispatchEvent(ev);
+    } catch (e) {}
+  }
+
+  /* Find the first interactive element whose visible text matches. This is how
+   * Circuit presses "buttons" it was never hard-wired to — it reads the label
+   * like a person would. */
+  function findText(text, root) {
+    var want = String(text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!want) return null;
+    var nodes = (root || document).querySelectorAll(
+      'a, button, input[type=submit], input[type=button], [role=button], .nav__item, .tab, label'
+    );
+    var loose = null;
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      if (el.disabled) continue;
+      var label = (el.getAttribute('aria-label') || el.textContent || el.value || '')
+        .toLowerCase().replace(/\s+/g, ' ').trim();
+      if (label === want) return el;
+      if (!loose && label && label.indexOf(want) !== -1) loose = el;
+    }
+    return loose;
+  }
+
+  function setValue(el, value) {
+    if (!el) return;
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      el.checked = (value === true || value === 'on' || value === '1' || value === 'true');
+      fire(el, 'change');
+    } else {
+      el.value = value == null ? '' : String(value);
+      fire(el, 'input');
+      fire(el, 'change');
+    }
+  }
+
+  /* After a [data-confirm] click the panel opens a dialog; press its OK. */
+  function confirmDialog() {
+    return wait(320).then(function () {
+      var ok = document.querySelector('dialog[open] button[value="ok"], dialog.dlg button[value="ok"]');
+      if (ok) { press(ok); ok.click(); }
+      return wait(360);
+    });
+  }
+
   function run(plan) {
     plan = Array.isArray(plan) ? plan : [];
     if (busy || !agentEl) return Promise.resolve();
     busy = true;
     var i = 0;
 
+    function resolve(step) {
+      return document.querySelector(step.target || step.selector || '');
+    }
+
     function next() {
-      if (i >= plan.length) { busy = false; moveHome(); return Promise.resolve(); }
+      if (i >= plan.length) {
+        try { sessionStorage.removeItem(RESUME); } catch (e) {}
+        busy = false;
+        moveHome();
+        return Promise.resolve();
+      }
       var step = plan[i++];
+      // Remember what is left before every step. A plain form submit reloads
+      // the page — this is what lets the rest of the plan resume afterwards.
+      try { sessionStorage.setItem(RESUME, JSON.stringify(plan.slice(i))); } catch (e) {}
+      var lead = step.speak ? say(step.speak, 250) : Promise.resolve();
       var p;
 
       if (step.type === 'say') {
-        p = say(step.text);
+        p = say(step.text, step.hold);
       } else if (step.type === 'goto') {
-        var pre = step.speak ? say(step.speak, 250) : Promise.resolve();
-        p = pre.then(function () { return pressSelector(step.target); }).then(function () {
+        p = lead.then(function () { return pressSelector(step.target || step.selector); }).then(function () {
           var rest = plan.slice(i);
           try { sessionStorage.setItem(RESUME, JSON.stringify(rest)); } catch (e) {}
           if (step.url) window.location.href = step.url;
           return wait(500);
         });
+      } else if (step.type === 'fill' || step.type === 'select' || step.type === 'check') {
+        p = lead.then(function () {
+          var el = resolve(step);
+          return travelTo(el).then(function () { setValue(el, step.value); return wait(140); });
+        });
+      } else if (step.type === 'wait') {
+        if (step.selector) {
+          p = lead.then(function () { return waitFor(step.selector, step.ms || 6000); });
+        } else {
+          p = lead.then(function () { return wait(step.ms || 600); });
+        }
+      } else if (step.type === 'text') {
+        p = lead.then(function () {
+          var el = findText(step.text, step.scope ? document.querySelector(step.scope) : document);
+          return travelTo(el).then(function () {
+            press(el);
+            var needsOk = el && el.hasAttribute && el.hasAttribute('data-confirm');
+            el && el.click();
+            return needsOk ? confirmDialog() : wait(560);
+          });
+        });
+      } else if (step.type === 'confirm') {
+        p = lead.then(confirmDialog);
+      } else if (step.type === 'inRow') {
+        p = lead.then(function () {
+          var anchor = document.querySelector(step.find || '');
+          var row = anchor && anchor.closest ? anchor.closest(step.row || 'tr') : null;
+          var el = row ? row.querySelector(step.click || '') : null;
+          return travelTo(el).then(function () {
+            press(el);
+            var needsOk = el && el.hasAttribute && el.hasAttribute('data-confirm');
+            el && el.click();
+            return needsOk ? confirmDialog() : wait(560);
+          });
+        });
+      } else if (step.type === 'read') {
+        p = lead.then(function () {
+          var el = resolve(step);
+          var val = el ? (el.value || el.textContent || '') : '';
+          val = String(val).trim();
+          return step.say !== false ? say((step.prefix || '') + val, 2000) : Promise.resolve();
+        });
       } else {
-        var lead = step.speak ? say(step.speak, 250) : Promise.resolve();
-        p = lead.then(function () { return pressSelector(step.target); });
+        // default: press a target like a person
+        p = lead.then(function () {
+          var el = resolve(step);
+          return travelTo(el).then(function () {
+            press(el);
+            var needsOk = el && el.hasAttribute && el.hasAttribute('data-confirm');
+            el && el.click();
+            return needsOk ? confirmDialog() : wait(560);
+          });
+        });
       }
 
       return p.then(next, next);
     }
 
     return next();
+  }
+
+  /* Wait until a selector shows up (dialogs, AJAX rows, redirected pages). */
+  function waitFor(selector, ms) {
+    return new Promise(function (res) {
+      var deadline = Date.now() + (ms || 6000);
+      (function poll() {
+        if (document.querySelector(selector)) return res();
+        if (Date.now() > deadline) return res();
+        setTimeout(poll, 120);
+      })();
+    });
   }
 
   function resume() {
@@ -225,7 +352,18 @@
       credentials: 'same-origin',
       body: JSON.stringify({ text: text })
     }).then(function (r) {
-      return r.json();
+      // Read text first: a CSRF redirect or a PHP error returns HTML, and
+      // r.json() would throw a useless "unexpected token" instead of the status.
+      return r.text().then(function (body) {
+        var parsed = null;
+        try { parsed = JSON.parse(body); } catch (e) {}
+        if (!parsed) {
+          var err = new Error('HTTP ' + r.status);
+          err.status = r.status;
+          throw err;
+        }
+        return parsed;
+      });
     }).then(function (res) {
       if (res.csrf) {
         var m = document.querySelector('meta[name="csrf-token"]');
@@ -233,9 +371,10 @@
       }
       if (res.toast && window.App) App.toast(res.toast.msg, res.toast.kind);
       return run(res.plan).then(function () { return res; });
-    }).catch(function () {
-      if (window.App) App.toast('Assistant request failed.', 'bad');
-      return say('I could not reach the panel.').then(function () { return { ok: false }; });
+    }).catch(function (e) {
+      var status = (e && e.status) ? ' (' + e.status + ')' : '';
+      if (window.App) App.toast('Assistant request failed' + status + '.', 'bad');
+      return say('I could not reach the panel' + status + '.').then(function () { return { ok: false }; });
     });
   }
 

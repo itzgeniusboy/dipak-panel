@@ -9,7 +9,7 @@ class HistoryModel extends Model
     protected $table      = 'history';
     protected $primaryKey = 'id_history';
     protected $allowedFields = ['keys_id', 'user_do', 'info'];
-    protected $useTimestamps = true;
+    protected $useTimestamps = false;
 
     public function getAll($limit = 10, $orderBy = "DESC")
     {
