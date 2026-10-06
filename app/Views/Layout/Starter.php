@@ -38,6 +38,7 @@
 
     <div class="row gap-2">
       <span class="chip chip--accent nowrap"><?= esc(session('username') ?? 'user', 'html') ?></span>
+      <button class="btn btn--ghost btn--sm" type="button" data-sound-toggle aria-pressed="true" title="Sound on">🔊</button>
       <a class="btn btn--ghost btn--sm" href="<?= site_url('logout') ?>">Sign out</a>
     </div>
   </header>
@@ -77,6 +78,7 @@
 <script src="<?= base_url('assets/js/motion.js') ?>"></script>
 <script src="<?= base_url('assets/js/app.js') ?>"></script>
 <script src="<?= base_url('assets/js/mascot.js') ?>"></script>
+<script src="<?= base_url('assets/js/sound.js') ?>"></script>
 <?= $this->renderSection('script') ?>
 <?= $this->renderSection('js') ?>
 

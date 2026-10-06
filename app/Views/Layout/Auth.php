@@ -62,6 +62,7 @@
 <script src="<?= base_url('assets/js/motion.js') ?>"></script>
 <script src="<?= base_url('assets/js/app.js') ?>"></script>
 <script src="<?= base_url('assets/js/mascot.js') ?>"></script>
+<script src="<?= base_url('assets/js/sound.js') ?>"></script>
 <?= $this->renderSection('script') ?>
 </body>
 </html>

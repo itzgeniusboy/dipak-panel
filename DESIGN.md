@@ -13,6 +13,7 @@ Every view is rebuilt against this. Read this file before writing any view.
 - `assets/js/app.js` — `window.App`, toasts and dialogs
 - `assets/js/mascot.js` — `window.Mascot`, mood from real events
 - `assets/js/board.js` — task board behaviour (pointer drag)
+- `assets/js/sound.js` — `window.Sound`, synthesised click language (mute in header)
 - `app/Views/Partials/Mascot.php` — the mascot SVG (inline, themed)
 - `app/Views/Layout/Auth.php` — auth shell, has `$this->renderSection('content')`
 - `app/Views/Auth/login.php` — **reference implementation, copy its idioms**
@@ -108,6 +109,10 @@ Rules that make it feel made rather than animated:
   State lives in `localStorage('panel.tasks.v1')`; never read the DOM back.
 - **Page transitions** — `transitions.css` only; cross-document View Transitions.
   `.brand__mark` carries (morphs) between pages.
+- **Sound** — `Sound.tick()` on every `button/a/[data-press]/[data-card]` press, plus
+  `chime()`/`warn()` off `app:toast`. All Web Audio synthesis, one timbre family,
+  ~0.035 master gain. Mute: `[data-sound-toggle]` in the header, stored in
+  `localStorage('panel.sound')`; a muted document gets `data-sound="off"` on `<html>`.
 `.dialog` (native `<dialog class="dlg">` via `App.dialog`)
 
 ## Forms
