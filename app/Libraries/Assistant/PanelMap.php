@@ -115,11 +115,17 @@ class PanelMap
      */
     private static function generateKey(array $params): array
     {
-        $hours   = KeyFactory::nearestPlan((int) ($params['duration'] ?? 0));
+        $asked   = (int) ($params['duration'] ?? 0);
+        $hours   = KeyFactory::nearestPlan($asked);
         $devices = max(1, (int) ($params['max_devices'] ?? 1));
         $game    = (string) ($params['game'] ?? 'PUBG');
 
-        return [
+        $note = [];
+        if ($asked > 0 && $asked !== $hours) {
+            $note[] = self::say('Closest plan is ' . self::hoursLabel($hours) . '.');
+        }
+
+        return array_merge($note, [
             self::goto('generate', 'Opening the key generator.'),
             ['type' => 'fill', 'selector' => '#game', 'value' => $game],
             ['type' => 'fill', 'selector' => '#duration', 'value' => (string) $hours],
@@ -127,7 +133,29 @@ class PanelMap
             ['type' => 'tap', 'selector' => 'form button[type="submit"]', 'speak' => 'Generating your key.'],
             ['type' => 'wait', 'selector' => '#madeKey', 'ms' => 9000],
             ['type' => 'read', 'selector' => '#madeKey', 'prefix' => 'Your key is '],
-        ];
+        ]);
+    }
+
+    private static function hoursLabel(int $hours): string
+    {
+        if ($hours <= 0) {
+            return 'the default';
+        }
+        if ($hours < 24) {
+            return $hours . ' hour' . ($hours === 1 ? '' : 's');
+        }
+        if ($hours % 720 === 0) {
+            $m = (int) ($hours / 720);
+
+            return $m . ' month' . ($m === 1 ? '' : 's');
+        }
+        if ($hours % 24 === 0) {
+            $d = (int) ($hours / 24);
+
+            return $d . ' day' . ($d === 1 ? '' : 's');
+        }
+
+        return $hours . ' hours';
     }
 
     private static function goto(string $page, ?string $speak = null): array
